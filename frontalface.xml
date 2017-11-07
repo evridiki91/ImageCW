@@ -54,8 +54,8 @@
           <_>
             <!-- root node -->
             <feature>
-              <rects>
-                <_>6 4 12 9 -1.</_>
+              <rects> <!-- rectangles -->
+                <_>6 4 12 9 -1.</_> <!-- starts at x = 6 y = 4 -->
                 <_>6 7 12 3 3.</_></rects>
               <tilted>0</tilted></feature>
             <threshold>-0.0315119996666908</threshold>
@@ -68,7 +68,7 @@
             <feature>
               <rects>
                 <_>6 4 12 7 -1.</_>
-                <_>10 4 4 7 3.</_></rects>
+                <_>10 4 4 7 3.</_></rects> <!-- x = 10, y = 4, width = 3, height = 7, contribution = 3 -->
               <tilted>0</tilted></feature>
             <threshold>0.0123960003256798</threshold>
             <left_val>-1.8633940219879150</left_val>
