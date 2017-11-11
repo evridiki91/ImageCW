@@ -103,26 +103,30 @@ void detectAndDisplay( Mat frame )
 	// 2. Perform Viola-Jones Object Detection
 	cascade.detectMultiScale( frame_gray, faces, 1.1, 1, 0|CV_HAAR_SCALE_IMAGE, Size(50, 50), Size(500,500) );
 
+	//counter for correctly recognised faces
 	int counter = 0;
-	for( int i = 0; i < faces.size(); i++ )
-{
-	rectangle(frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar( 0, 255, 0 ), 2);
-}
+	//draw rectangle around detected faces
+	for( int i = 0; i < faces.size(); i++ ){
+		rectangle(frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar( 0, 255, 0 ), 2);
+	}
+	//variable for storing the true face coordinates
 	vector<Rect> truefaces(box, box + sizeof(box)/sizeof(box[0]));
 
 	for (int j = 0; j<truefaces.size(); j++ ){
 		for( int i = 0; i < faces.size(); i++ ){
+			//if they do not overlap then go to next iteration
 			if (!overlap(truefaces[j],faces[i])){
 				continue; }
 			else {
+				//getting the % of overlap
 				double percentage = overlapRectanglePerc(truefaces[j],faces[i]);
 				printf("percentage of overlap  %f%%\n",percentage );
 				if (percentage > 70){
+					//increment the counter for correctly recognised faces and go to next face
 					counter++;
 					break; }
 			}
 		}
 	}
-
 	printf("Found %d faces out of %d\n",counter,truefaces.size());
 }
