@@ -14,30 +14,30 @@
 using namespace std;
 using namespace cv;
 
-// Rect box[] = { Rect(341,101,142,170) };											//dart 4
+Point(456,28),Point(584,178) //Dart 0
+Point(201,144), Point(381,314) //Dart 1
+Point(111,108), Point(181,178)	//Dart 2
+Point(325,154),Point(388,212)//Dart 3
+Point(195,104),Point(355,271)//Dart 4
+Point(442,149),Point(512,232)//Dart 5
+Point(214,121),Point(270,178)//Dart 6
+Point(262,175),Point(346,303)//Dart 7
+Point(74,261),Point(122,333)//Dart 8
+Point(852,226),Point(947,328)//Dart 8
+Point(226,65),Point(418,259)//Dart 9
+Point(104,112),Point(176,200)//Dart 10
+Point(590,136),Point(636,199)//Dart 10
+Point(924,160),Point(947,207)//Dart 10
+Point(179,112),Point(228,149)	//Dart 11
+Point(166,86),Point(208,199)//Dart 12
+Point(285,128),Point(391,235)//Dart 13
+Point(134,114),Point(232,213)//Dart 14
+Point(1002,109),Point(1100,204)//Dart 14
+Point(166,70),Point(273,176)//Dart 15
 
-// Rect box[] = { Rect(467,208,83,114), Rect(731,181,94,114)}; //dart 14
-//
-Rect box[] = {																							//dart 15
-	Rect(66,133,62,81),
-	Rect(374,110,76,93),
-	Rect(540,124,87,93) };
-//
-// Rect box[] = {Rect(415,117,107,146)};												//dart 13
-//
-// Rect box[]= {																							//dart 5
-// 	Rect(64,136,58,71),
-// 	Rect(191,212,59,71),
-// 	Rect(56,248,59,74),
-// 	Rect(254,169,51,63),
-// 	Rect(294,241,55,69),
-// 	Rect(382,181,60,64),
-// 	Rect(431,233,55,69),
-// 	Rect(513,166,59,69),
-// 	Rect(561,246,59,69),
-// 	Rect(647,180,57,69),
-// 	Rect(676,242,61,69)
-// 	};
+
+
+
 
 void detectAndDisplay( Mat frame );
 
