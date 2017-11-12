@@ -14,6 +14,31 @@
 using namespace std;
 using namespace cv;
 
+// Rect box[] = { Rect(341,101,142,170) };											//dart 4
+
+// Rect box[] = { Rect(467,208,83,114), Rect(731,181,94,114)}; //dart 14
+//
+Rect box[] = {																							//dart 15
+	Rect(66,133,62,81),
+	Rect(374,110,76,93),
+	Rect(540,124,87,93) };
+//
+// Rect box[] = {Rect(415,117,107,146)};												//dart 13
+//
+// Rect box[]= {																							//dart 5
+// 	Rect(64,136,58,71),
+// 	Rect(191,212,59,71),
+// 	Rect(56,248,59,74),
+// 	Rect(254,169,51,63),
+// 	Rect(294,241,55,69),
+// 	Rect(382,181,60,64),
+// 	Rect(431,233,55,69),
+// 	Rect(513,166,59,69),
+// 	Rect(561,246,59,69),
+// 	Rect(647,180,57,69),
+// 	Rect(676,242,61,69)
+// 	};
+
 void detectAndDisplay( Mat frame );
 
 String cascade_name = "dartcascade/cascade.xml";
