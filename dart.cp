@@ -14,35 +14,28 @@
 using namespace std;
 using namespace cv;
 
-Point(456,28),Point(584,178) //Dart 0
-Point(201,144), Point(381,314) //Dart 1
-Point(111,108), Point(181,178)	//Dart 2
-Point(325,154),Point(388,212)//Dart 3
-Point(195,104),Point(355,271)//Dart 4
-Point(442,149),Point(512,232)//Dart 5
-Point(214,121),Point(270,178)//Dart 6
-Point(262,175),Point(346,303)//Dart 7
-Point(74,261),Point(122,333)//Dart 8
-Point(852,226),Point(947,328)//Dart 8
-Point(226,65),Point(418,259)//Dart 9
-Point(104,112),Point(176,200)//Dart 10
-Point(590,136),Point(636,199)//Dart 10
-Point(924,160),Point(947,207)//Dart 10
-Point(179,112),Point(228,149)	//Dart 11
-Point(166,86),Point(208,199)//Dart 12
-Point(285,128),Point(391,235)//Dart 13
-Point(134,114),Point(232,213)//Dart 14
-Point(1002,109),Point(1100,204)//Dart 14
-Point(166,70),Point(273,176)//Dart 15
-
-
-
-
-
 void detectAndDisplay( Mat frame );
 
 String cascade_name = "dartcascade/cascade.xml";
 CascadeClassifier cascade;
+
+Rect box[] = {Rect(456,28,128,150)}; //dart 0
+// Rect box[] = {Rect(201,144,180,170)}; //dart 1
+// Rect box[] = {Rect(111,108,70,70)};	//dart 2
+// Rect box[] = {Rect(325,154,63,58)};	//dart 3
+// Rect box[] = {Rect(195,104,137,167)}; //dart 4
+// Rect box[] = {Rect(442,149,70,83)};//dart 5
+// rect box[] = {Rect(214,121,56,57)};//dart 6
+// rect box[] = {Rect(262,175,84,128)};//dart 7
+// rect box[] = {Rect(74,261,48,72)};//dart 8
+// rect box[] = {Rect(852,226,95,102)};//dart 8
+// rect box[] = {Rect(226,65,192,194)};//dart 9
+// rect box[] = {Rect(104,112,72,88),Rect(590,136,46,63),Rect(924,160,23,47)};	//dart 10
+// rect box[] = {Rect(185,114,39,37)};//dart 11
+// rect box[] = {Rect(166,86,42,113)};//dart 12
+// rect box[] = {Rect(285,128,106,107)};//dart 13
+// rect box[] = {Rect(134,114,98,99),Rect(1002,109,98,95)};//dart 14
+// rect box[] = {Rect(166,70,107,106)};//dart 15
 
 int overlap(Rect a, Rect b){
   if ((a.x+a.width) <= b.x ||a.x >= ( b.x+b.width )|| a.y >= ( b.y+b.height )|| (a.y + a.height) <= b.y){
@@ -52,7 +45,7 @@ int overlap(Rect a, Rect b){
 }
 
 Rect createRectFromDiagonal(Point a, Point b){
-  return Rect(a.x,a.y,b.x-a.x,b.y-a.y);
+	printf("Rect(%d,%d,%d,%d);\n", a.x,a.y,b.x-a.x,b.y-a.y);
 }
 
 //creating the overlapping rectangle
@@ -72,10 +65,12 @@ double overlapRectanglePerc(Rect a, Rect b){
 	return perc*100;
 }
 
+
 /** @function main */
+
 int main( int argc, const char** argv )
 {
-       // 1. Read Input Image
+  // 1. Read Input Image
 	Mat frame = imread(argv[1], CV_LOAD_IMAGE_COLOR);
 
 	// 2. Load the Strong Classifier in a structure called `Cascade'
@@ -108,11 +103,11 @@ void detectAndDisplay( Mat frame )
 	for( int i = 0; i < darts.size(); i++ ){
 		rectangle(frame, Point(darts[i].x, darts[i].y), Point(darts[i].x + darts[i].width, darts[i].y + darts[i].height), Scalar( 0, 255, 0 ), 2);
 	}
-	/*
+
 	//variable for storing the true face coordinates
 	vector<Rect> truedarts(box, box + sizeof(box)/sizeof(box[0]));
-
 	for (int j = 0; j<truedarts.size(); j++ ){
+		rectangle(frame, Point(truedarts[j].x, truedarts[j].y), Point(truedarts[j].x + truedarts[j].width, truedarts[j].y + truedarts[j].height), Scalar( 255, 0, 0 ), 2);
 		for( int i = 0; i < darts.size(); i++ ){
 			//if they do not overlap then go to next iteration
 			if (!overlap(truedarts[j],darts[i])){
@@ -129,5 +124,5 @@ void detectAndDisplay( Mat frame )
 		}
 	}
 	printf("Found %d darts out of %d\n",counter,truedarts.size());
-	*/
+
 }
