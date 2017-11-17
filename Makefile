@@ -1,7 +1,7 @@
 CC = g++
 CFLAGS = -g -Wall
-SRCS = dart.cp
-PROG = dart
+SRCS = face.cp
+PROG = face
 
 OPENCV = `pkg-config opencv --cflags --libs`
 LIBS = $(OPENCV)

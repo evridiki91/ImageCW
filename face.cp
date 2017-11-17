@@ -22,9 +22,10 @@ Rect box[] = {																							//dart 15
 	Rect(66,133,62,81),
 	Rect(374,110,76,93),
 	Rect(540,124,87,93) };
+
 //
 // Rect box[] = {Rect(415,117,107,146)};												//dart 13
-//
+
 // Rect box[]= {																							//dart 5
 // 	Rect(64,136,58,71),
 // 	Rect(191,212,59,71),
@@ -70,6 +71,16 @@ double overlapRectanglePerc(Rect a, Rect b){
 	double originalArea = (a.width)*(a.height);
 	double perc = overlappingArea/originalArea;
 	return perc*100;
+}
+// detected = number of elements detected (true and false)
+// trueDetected = number of elements that should have been detected
+// correct = number of elemnts correctly trueDetected
+double f1score(double detected, double trueDetected, double correct){
+	double precision = correct/detected;
+	printf("precision %f\n",precision);
+	double recall = correct / trueDetected;
+	printf("recall %f\n",recall);
+	return 2*(precision*recall)/(precision + recall);
 }
 
 /** @function main */
@@ -129,4 +140,7 @@ void detectAndDisplay( Mat frame )
 		}
 	}
 	printf("Found %d faces out of %d\n",counter,truefaces.size());
+	//f1score(int detected, int trueDetected, int correct)
+	double f1 = f1score(faces.size(),truefaces.size(),counter);
+	printf("f1score is %lf\n",f1);
 }
