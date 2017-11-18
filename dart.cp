@@ -86,11 +86,20 @@ void direc(Mat &dx, Mat &dy, Mat &out){
   }
 }
 
+void hough_circle(Mat &mag, Mat &thr){
+  threshold(mag,thr, thresh, maxValue, THRESH_BINARY);
+
+  double maxr = hypot (mag.size[0], mag.size[1]); //hypotenous = diagonal of image
+
+  double minr = 0;
+
+
+}
 /** @function detectAndDisplay */
 void detectAndDisplay( Mat frame )
 {
 	std::vector<Rect> darts;
-	Mat frame_gray, blurred, gradx, grady, mag, dir;
+	Mat frame_gray, blurred, gradx, grady, mag, dir, thr;
 
 	// 1. Prepare Image by turning it into Grayscale and normalising lighting
 	cvtColor( frame, frame_gray, CV_BGR2GRAY );
@@ -106,9 +115,10 @@ void detectAndDisplay( Mat frame )
   convertScaleAbs( grady, grady );
   magnit(gradx,grady,mag);
   direc(gradx,grady,dir);
-  // normalize(dir,dir,0,255,NORM_MINMAX);
   imwrite("magnitude.jpg",mag);
   imwrite("direction.jpg",dir);
+  hough_circle(mag, thr);
+  imwrite("threshold.jpg",thr);
 
   // writeToCSV("gradx.csv",gradx);
   // writeToCSV("direction.csv",dir);

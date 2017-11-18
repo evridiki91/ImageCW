@@ -3,6 +3,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <fstream>
+#include <math.h>
 
 using namespace std;
 using namespace cv;
@@ -26,6 +27,9 @@ Rect box[] = {Rect(456,28,128,150)}; //dart 0
 int ddepth = CV_16S;
 int scale = 1;
 int delta = 0;
+double thresh = 100;
+double maxValue = 255;
+
 
 
 void detectAndDisplay( Mat frame );
