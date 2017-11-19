@@ -27,7 +27,7 @@ Rect box[] = {Rect(456,28,128,150)}; //dart 0
 int ddepth = CV_16S;
 int scale = 1;
 int delta = 0;
-double thresh = 100;
+double thresh = 150;
 double maxValue = 255;
 
 
