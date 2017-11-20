@@ -8,3 +8,5 @@ LIBS = $(OPENCV)
 
 $(PROG):$(SRCS)
 	$(CC) $(CFLAGS) -o $(PROG) $(SRCS) $(LIBS)
+clean:
+	rm *.o
