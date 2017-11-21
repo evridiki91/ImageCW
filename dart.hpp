@@ -125,7 +125,6 @@ void hough_line(Mat &thr, Mat &dir, int hough_threshold ){
   writeToCSV("hough_circle.csv",acc2d);
   convert(acc2d,acc2d);
   writeToCSV("hough_circlenorm.csv",acc2d);
-
   imwrite("hough_circle.jpg",acc2d);
 }
 
