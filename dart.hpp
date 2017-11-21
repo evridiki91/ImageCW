@@ -24,24 +24,45 @@ Rect box[] = {Rect(456,28,128,150)}; //dart 0
 // Rect box[] = {Rect(285,128,106,107)};//dart 13
 // Rect box[] = {Rect(134,114,98,99),Rect(1002,109,98,95)};//dart 14
 // Rect box[] = {Rect(166,70,107,106)};//dart 15
-int ddepth = CV_64F;
-double thresh = 125;
-double maxValue = 255;
 
-Mat gradient_direction(Mat &dx,Mat &dy){
-  Mat out = Mat::zeros(dx.size[0],dx.size[1],CV_64F);
-  printf("Directioning\n" );
-  for (int y = 0; y < dx.size[0]; y++){
-    for (int x = 0; x < dx.size[1]; x++){
-      double pointx = dx.at<uchar>(y,x);
-      double pointy = dy.at<uchar>(y,x);
-      out.at<double>(y,x) = atan2(pointy,pointx) - (CV_PI/2) ;
-    }
-  }
-  return out;
+float thresh = 80;
+float maxValue = 255;
+
+void convert(Mat &src,Mat &dst){
+  double minVal, maxVal;
+  minMaxLoc(src, &minVal, &maxVal); //find minimum and maximum intensities
+  src.convertTo(dst, CV_8U, 255.0/(maxVal - minVal), -minVal * 255.0/(maxVal - minVal));
+  printf("Converting done\n");
 }
 
-double euclidean(Point a, Point b){
+void gradient_direction(Mat &dx,Mat &dy, Mat &dir){
+  printf("Directioning\n" );
+  dir.create(dx.size(), dx.type() );
+  for (int y = 0; y < dx.size[0]; y++){
+    for (int x = 0; x < dx.size[1]; x++){
+      float pointx = dx.at<float>(y,x);
+      float pointy = dy.at<float>(y,x);
+      dir.at<float>(y,x) = atan2(pointy,pointx) ; // - (CV_PI/2)
+    }
+  }
+  printf("Finished Directioning\n" );
+}
+
+void gradient_magnitude(Mat &dx,Mat &dy, Mat &mag){
+  printf("Magnituding\n" );
+  mag.create(dx.size(), dx.type() );
+  for (int y = 0; y < dx.size[0]; y++){
+    for (int x = 0; x < dx.size[1]; x++){
+      float pointx = dx.at<float>(y,x);
+      float pointy = dy.at<float>(y,x);
+      mag.at<float>(y,x) = sqrt(pointx*pointx +pointy*pointy) ;
+    }
+  }
+  printf("Finished Magnituding\n" );
+}
+
+
+float euclidean(Point a, Point b){
   return sqrt((b.y - a.y)*(b.y - a.y) + (b.x - a.x)*(b.x - a.x));
 }
 
@@ -70,21 +91,22 @@ int overlap(Rect a, Rect b){
 //trueDetected = no of elements that should have been correctly detected
 //correct = no of elements that have been correctly detected
 double f1score(double detected, double trueDetected, double correct){
-	double precision = correct/detected;
-	printf("precision %f\n",precision);
-	double recall = correct / trueDetected;
-	printf("recall %f\n",recall);
-	// return 2*tp/(2*tp+fp+fn);
+  double tp = correct;
+  double fp = detected - tp;
+  double fn = trueDetected - tp;
+
+	printf("true positives %f\n",tp);
+  printf("false positives %f\n",fp);
+  printf("false negatives %f\n",fn);
+	return 2*tp/(2*tp+fp+fn);
 }
 
-void hough_circle(Mat &thr, int minr, int maxr,Mat &dir){
-  printf("inside hough");
-  printf("MAXR %d minr %d",maxr,minr);
-  Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_64F);
-  const int rows=thr.size[0], cols=thr.size[1], radii=maxr-minr;
-  int dims[3] = {rows, cols, radii};
-  cv::Mat acc3d = Mat::zeros(3, dims, CV_64F);
 
+
+void hough_line(Mat &thr, Mat &dir, int hough_threshold ){
+  printf("inside hough");
+  Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_32F);
+  const int rows=thr.size[0], cols=thr.size[1];
   for (int y = 0 ; y < rows; y++){
     for (int x = 0 ; x < cols; x++){
       int pixel = thr.at<uchar>(y,x);
@@ -92,66 +114,24 @@ void hough_circle(Mat &thr, int minr, int maxr,Mat &dir){
         continue;
       }
       else{
-        double t = dir.at<uchar>(y,x);
-        for (int r = minr; r < maxr; r++){
-            double a = (x -r * cos(t ));
-            double b = (y -r * sin(t ));
-            if(a >= 0 && b >= 0 && a < rows && b <  cols) {
-              acc3d.at<uchar>((int) a,(int) b,r-minr) += 1;
-            }
-            a = (x + r * cos(t ));
-            b = (y + r * sin(t ));
-            // printf("x %d, y %d, r %lf, a %lf, b %lf",x,y,r,a,b);
-            if(a >= 0 && b >= 0 && a < rows && b <  cols) {
-              acc3d.at<uchar>((int) a,(int) b,r-minr) += 1;
-            }
+        float t = dir.at<float>(y,x);
+        for (float i = -0.1; i <= 1.1; i += 0.1){
+          int r = round(x*cos(t) + y*sin(t));
+          acc2d.at<float>(r,t) +=1;
         }
       }
     }
   }
-  for (int y = 0 ; y < rows; y++){
-    for (int x = 0 ; x < cols; x++){
-      for (int r = minr; r < maxr; r++){
-        acc2d.at<uchar>(y,x) += acc3d.at<uchar>(y,x,r);
-      }
-    }
-  }
-  // for (int y = 0 ; y < rows; y++){
-  //   for (int x = 0 ; x < cols; x++){
-  //       acc2d.at<uchar>(y,x) = log(acc2d.at<uchar>(y,x));
-  //     }
-  //   }
   writeToCSV("hough_circle.csv",acc2d);
+  convert(acc2d,acc2d);
+  writeToCSV("hough_circlenorm.csv",acc2d);
+
   imwrite("hough_circle.jpg",acc2d);
-}
-
-
-void hough_line(Mat &thr,Mat &dir){
-  printf("inside hough");
-  Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_8UC1);
-  const int rows=thr.size[0], cols=thr.size[1];
-  for (int y = 0 ; y < rows; y++){
-    for (int x = 0 ; x < cols; x++){
-      if ( thr.at<uchar>(y,x) != 255) {
-        continue;
-      }
-      else{
-          int t = dir.at<uchar>(y,x);
-          int r = int(x * cos(t) - y * sin(t));
-          if(r >= 0 && r < rows) {
-            acc2d.at<uchar>(r,t) += 1;
-          }
-        }
-      }
-    }
-
-    writeToCSV("line_hough.csv",acc2d);
-    imwrite("hough_line.jpg",acc2d);
 }
 
 //creating the overlapping rectangle
 //NOTE: Rect a must be the reference
-double overlapRectanglePerc(Rect a, Rect b){
+float overlapRectanglePerc(Rect a, Rect b){
 	//finding the intersecting left, top, right, bottom coordinates
 	int left = max(a.x,b.x);
 	int top = max(a.y,b.y);
@@ -160,9 +140,9 @@ double overlapRectanglePerc(Rect a, Rect b){
 	int width = right - left;
 	int height = bottom - top;
 
-	double overlappingArea = width*height;
-	double originalArea = (a.width)*(a.height);
-	double perc = overlappingArea/originalArea;
+	float overlappingArea = width*height;
+	float originalArea = (a.width)*(a.height);
+	float perc = overlappingArea/originalArea;
 	return perc*100;
 }
 void detectAndDisplay( Mat frame );
