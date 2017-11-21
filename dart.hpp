@@ -24,11 +24,26 @@ Rect box[] = {Rect(456,28,128,150)}; //dart 0
 // Rect box[] = {Rect(285,128,106,107)};//dart 13
 // Rect box[] = {Rect(134,114,98,99),Rect(1002,109,98,95)};//dart 14
 // Rect box[] = {Rect(166,70,107,106)};//dart 15
-int ddepth = CV_32F;
+int ddepth = CV_64F;
 double thresh = 125;
 double maxValue = 255;
 
+Mat gradient_direction(Mat &dx,Mat &dy){
+  Mat out = Mat::zeros(dx.size[0],dx.size[1],CV_64F);
+  printf("Directioning\n" );
+  for (int y = 0; y < dx.size[0]; y++){
+    for (int x = 0; x < dx.size[1]; x++){
+      double pointx = dx.at<uchar>(y,x);
+      double pointy = dy.at<uchar>(y,x);
+      out.at<double>(y,x) = atan2(pointy,pointx) - (CV_PI/2) ;
+    }
+  }
+  return out;
+}
 
+double euclidean(Point a, Point b){
+  return sqrt((b.y - a.y)*(b.y - a.y) + (b.x - a.x)*(b.x - a.x));
+}
 
 void writeToCSV(string filename, Mat m)
 {
@@ -39,8 +54,9 @@ void writeToCSV(string filename, Mat m)
 }
 
 
-void createRectFromDiagonal(Point a, Point b){
-	printf("Rect(%d,%d,%d,%d);\n", a.x,a.y,b.x-a.x,b.y-a.y);
+Rect createRectFromDiagonal(Point a, Point b){
+	// printf("Rect(%d,%d,%d,%d);\n", a.x,a.y,b.x-a.x,b.y-a.y);
+  return Rect(a.x,a.y,b.x-a.x,b.y-a.y);
 }
 
 int overlap(Rect a, Rect b){
@@ -50,21 +66,24 @@ int overlap(Rect a, Rect b){
   return 1;
 }
 
+//detected = number of elements that were detected, (TP+FP)
+//trueDetected = no of elements that should have been correctly detected
+//correct = no of elements that have been correctly detected
 double f1score(double detected, double trueDetected, double correct){
 	double precision = correct/detected;
 	printf("precision %f\n",precision);
 	double recall = correct / trueDetected;
 	printf("recall %f\n",recall);
-	return 2*(precision*recall)/(precision + recall);
+	// return 2*tp/(2*tp+fp+fn);
 }
 
 void hough_circle(Mat &thr, int minr, int maxr,Mat &dir){
   printf("inside hough");
   printf("MAXR %d minr %d",maxr,minr);
-  Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_8UC1);
+  Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_64F);
   const int rows=thr.size[0], cols=thr.size[1], radii=maxr-minr;
   int dims[3] = {rows, cols, radii};
-  cv::Mat acc3d = Mat::zeros(3, dims, CV_16UC1);
+  cv::Mat acc3d = Mat::zeros(3, dims, CV_64F);
 
   for (int y = 0 ; y < rows; y++){
     for (int x = 0 ; x < cols; x++){
@@ -73,17 +92,18 @@ void hough_circle(Mat &thr, int minr, int maxr,Mat &dir){
         continue;
       }
       else{
-        int t = dir.at<uchar>(y,x);
+        double t = dir.at<uchar>(y,x);
         for (int r = minr; r < maxr; r++){
-            int a = int (x -r * cos(t ));
-            int b = int (y +r * sin(t ));
+            double a = (x -r * cos(t ));
+            double b = (y -r * sin(t ));
             if(a >= 0 && b >= 0 && a < rows && b <  cols) {
-              acc3d.at<uchar>(a,b,r-minr) += 1;
+              acc3d.at<uchar>((int) a,(int) b,r-minr) += 1;
             }
-            a = int (x +r * cos(t ));
-            b = int (y +r * sin(t ));
+            a = (x + r * cos(t ));
+            b = (y + r * sin(t ));
+            // printf("x %d, y %d, r %lf, a %lf, b %lf",x,y,r,a,b);
             if(a >= 0 && b >= 0 && a < rows && b <  cols) {
-              acc3d.at<uchar>(a,b,r-minr) += 1;
+              acc3d.at<uchar>((int) a,(int) b,r-minr) += 1;
             }
         }
       }
@@ -96,20 +116,13 @@ void hough_circle(Mat &thr, int minr, int maxr,Mat &dir){
       }
     }
   }
-
   // for (int y = 0 ; y < rows; y++){
   //   for (int x = 0 ; x < cols; x++){
   //       acc2d.at<uchar>(y,x) = log(acc2d.at<uchar>(y,x));
   //     }
   //   }
-
-  for (int y = 0 ; y < rows; y++){
-    for (int x = 0 ; x < cols; x++){
-        acc2d.at<uchar>(y,x) = log(acc2d.at<uchar>(y,x));
-      }
-    }
-  writeToCSV("hough.csv",acc2d);
-  imwrite("output.jpg",acc2d);
+  writeToCSV("hough_circle.csv",acc2d);
+  imwrite("hough_circle.jpg",acc2d);
 }
 
 
@@ -131,13 +144,13 @@ void hough_line(Mat &thr,Mat &dir){
         }
       }
     }
-    
+
     writeToCSV("line_hough.csv",acc2d);
     imwrite("hough_line.jpg",acc2d);
 }
 
 //creating the overlapping rectangle
-//NOTE: Rect a must be the true face
+//NOTE: Rect a must be the reference
 double overlapRectanglePerc(Rect a, Rect b){
 	//finding the intersecting left, top, right, bottom coordinates
 	int left = max(a.x,b.x);
