@@ -1,111 +1,116 @@
-#include <stdio.h>
-#include <opencv2/opencv.hpp>
-#include <iostream>
-#include <stdio.h>
-#include <fstream>
-#include <math.h>
+#include "helper_functions.hpp"
 
-using namespace std;
-using namespace cv;
+/***********************************************************************
+Function that calculates the hough transform for circles and displays
+its Hough Space.
+Inputs: Source = Magnitude matrix
+        Dir    = Direction matrix
+        minr,maxr = minimum and maximum radius
+Process: Thresholds magnitude image according to the thresh variable defined
+in constants.hpp. Iterates through all pixels where an edge has been detected
+i.e. has value 255. Sets theta = direction matrix.(+-0.02). Calculates a,b
+and increments the accumulator Acc[b,a,r].For visualisation purposes
+all the r's are summed up in each dimension to reduce the 3d accumulator
+to 2d
+***********************************************************************/
 
-Rect box[] = {Rect(456,28,128,150)}; //dart 0
-// Rect box[] = {Rect(201,144,180,170)}; //dart 1
-// Rect box[] = {Rect(111,108,70,70)};	//dart 2
-// Rect box[] = {Rect(325,154,63,58)};	//dart 3
-// Rect box[] = {Rect(195,104,137,167)}; //dart 4
-// Rect box[] = {Rect(442,149,70,83)};//dart 5
-// Rect box[] = {Rect(214,121,56,57)};//dart 6
-// Rect box[] = {Rect(262,175,84,128)};//dart 7
-// Rect box[] = {Rect(74,261,48,72),Rect(852,226,95,102)};//dart 8
-// Rect box[] = {Rect(226,65,192,194)};//dart 9
-// Rect box[] = {Rect(104,112,72,88),Rect(590,136,46,63),Rect(924,160,23,47)};	//dart 10
-// Rect box[] = {Rect(185,114,39,37)};//dart 11
-// Rect box[] = {Rect(166,86,42,113)};//dart 12
-// Rect box[] = {Rect(285,128,106,107)};//dart 13
-// Rect box[] = {Rect(134,114,98,99),Rect(1002,109,98,95)};//dart 14
-// Rect box[] = {Rect(166,70,107,106)};//dart 15
+void hough_circle(Mat &thr, Mat &dir, int minr, int maxr ){
 
-float thresh = 80;
-float maxValue = 255;
-
-void convert(Mat &src,Mat &dst){
-  double minVal, maxVal;
-  minMaxLoc(src, &minVal, &maxVal); //find minimum and maximum intensities
-  src.convertTo(dst, CV_8U, 255.0/(maxVal - minVal), -minVal * 255.0/(maxVal - minVal));
-  printf("Converting done\n");
+  printf("inside hough\n");
+  Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_64F);
+  const int rows=thr.size[0], cols=thr.size[1], radii=maxr-minr;
+  int dims[3] = {rows, cols, radii};
+  cv::Mat acc3d = Mat::zeros(3, dims, CV_64F);
+  //iterate through all pixels
+  for (int y = 0 ; y < rows; y++){
+    for (int x = 0 ; x < cols; x++){
+      int pixel = thr.at<uchar>(y,x);
+      //if an edge has not been detected go to next pixel
+      if ( pixel == 0) {
+        continue;
+      }
+      //if an edge has been detected go on to increment the accumulator
+      else{
+        //Use gradient direction information as theta (+-0.02)
+        double t = dir.at<double>(y,x);
+          //iterate through all posible radii
+        for (int r = minr; r < maxr; r++){
+            int x0 = round(x -r * cos(t));
+            int y0 = round(y -r * sin(t));
+            if(x0 >= 0 && y0 >= 0 && x0 < cols && y0 <  rows) {
+              // increment accumulator
+              acc3d.at<double>( y0,x0,r-minr) += 1;
+            }
+            x0 = round(x + r * cos(t));
+            y0 = round(y + r * sin(t));
+            if(x0 >= 0 && y0 >= 0 && x0 < cols && y0 <  rows) {
+              // increment accumulator
+              acc3d.at<double>( y0,x0,r-minr) += 1;
+            }
+          }
+      }
+    }
+  }
+  //accumulator 3d to 2d for visualisation purposes
+  for (int y = 0 ; y < rows; y++){
+    for (int x = 0 ; x < cols; x++){
+      for (int r = minr; r < maxr; r++){
+        acc2d.at<double>(y,x) += acc3d.at<double>(y,x,r);
+      }
+      acc2d.at<double>(y,x) *= 50;
+    }
+  }
+  writeToCSV("hough_circle.csv",acc2d);
+  // convert(acc2d,acc2d,);
+  // log_mat(acc2d,acc2d);
+  imwrite("hough_circle.jpg",acc2d);
 }
+
+
+/***********************************************************************
+Function that calculates the gradient direction of an image using the
+gradients in the x and y direction given by sobel. The result is stored in
+dir.
+***********************************************************************/
 
 void gradient_direction(Mat &dx,Mat &dy, Mat &dir){
   printf("Directioning\n" );
   dir.create(dx.size(), dx.type() );
   for (int y = 0; y < dx.size[0]; y++){
     for (int x = 0; x < dx.size[1]; x++){
-      float pointx = dx.at<float>(y,x);
-      float pointy = dy.at<float>(y,x);
-      dir.at<float>(y,x) = atan2(pointy,pointx) ; // - (CV_PI/2)
+      double pointx = dx.at<double>(y,x);
+      double pointy = dy.at<double>(y,x);
+      dir.at<double>(y,x) = atan2(pointy,pointx) ;   // - (CV_PI/2)
     }
   }
   printf("Finished Directioning\n" );
 }
+
+/***********************************************************************
+Function that calculates the gradient magnitude of an image using the
+gradients in the x and y direction given by sobel. The result is stored in
+mag.
+***********************************************************************/
 
 void gradient_magnitude(Mat &dx,Mat &dy, Mat &mag){
   printf("Magnituding\n" );
   mag.create(dx.size(), dx.type() );
   for (int y = 0; y < dx.size[0]; y++){
     for (int x = 0; x < dx.size[1]; x++){
-      float pointx = dx.at<float>(y,x);
-      float pointy = dy.at<float>(y,x);
-      mag.at<float>(y,x) = sqrt(pointx*pointx +pointy*pointy) ;
+      double pointx = dx.at<double>(y,x);
+      double pointy = dy.at<double>(y,x);
+      mag.at<double>(y,x) = sqrt(pointx*pointx +pointy*pointy) ;
     }
   }
   printf("Finished Magnituding\n" );
 }
 
 
-float euclidean(Point a, Point b){
-  return sqrt((b.y - a.y)*(b.y - a.y) + (b.x - a.x)*(b.x - a.x));
-}
-
-void writeToCSV(string filename, Mat m)
-{
-   ofstream file;
-   file.open(filename.c_str());
-   file<< cv::format(m, cv::Formatter::FMT_CSV) << std::endl;
-   file.close();
-}
-
-
-Rect createRectFromDiagonal(Point a, Point b){
-	// printf("Rect(%d,%d,%d,%d);\n", a.x,a.y,b.x-a.x,b.y-a.y);
-  return Rect(a.x,a.y,b.x-a.x,b.y-a.y);
-}
-
-int overlap(Rect a, Rect b){
-  if ((a.x+a.width) <= b.x ||a.x >= ( b.x+b.width )|| a.y >= ( b.y+b.height )|| (a.y + a.height) <= b.y){
-    return 0;
-  }
-  return 1;
-}
-
-//detected = number of elements that were detected, (TP+FP)
-//trueDetected = no of elements that should have been correctly detected
-//correct = no of elements that have been correctly detected
-double f1score(double detected, double trueDetected, double correct){
-  double tp = correct;
-  double fp = detected - tp;
-  double fn = trueDetected - tp;
-
-	printf("true positives %f\n",tp);
-  printf("false positives %f\n",fp);
-  printf("false negatives %f\n",fn);
-	return 2*tp/(2*tp+fp+fn);
-}
-
 
 
 void hough_line(Mat &thr, Mat &dir, int hough_threshold ){
   printf("inside hough");
-  Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_32F);
+  Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_64F);
   const int rows=thr.size[0], cols=thr.size[1];
   for (int y = 0 ; y < rows; y++){
     for (int x = 0 ; x < cols; x++){
@@ -123,13 +128,20 @@ void hough_line(Mat &thr, Mat &dir, int hough_threshold ){
     }
   }
   writeToCSV("hough_circle.csv",acc2d);
-  convert(acc2d,acc2d);
-  writeToCSV("hough_circlenorm.csv",acc2d);
-  imwrite("hough_circle.jpg",acc2d);
+  // convert(acc2d,acc2d);
+  // writeToCSV("hough_circlenorm.csv",acc2d);
+  // imwrite("hough_circle.jpg",acc2d);
 }
 
-//creating the overlapping rectangle
-//NOTE: Rect a must be the reference
+/***********************************************************************
+Calculates the overlapping percentage of two rectangles.
+It finds the rightmost and bottom coordinates of the overlap rectangle
+by finding the maximum of the two rectangles respective coordinates.
+We do the same for the y direction.
+NOTE: Rect a must be the reference. The overlapping percentage will
+be compared to this.
+***********************************************************************/
+
 float overlapRectanglePerc(Rect a, Rect b){
 	//finding the intersecting left, top, right, bottom coordinates
 	int left = max(a.x,b.x);
@@ -144,6 +156,3 @@ float overlapRectanglePerc(Rect a, Rect b){
 	float perc = overlappingArea/originalArea;
 	return perc*100;
 }
-void detectAndDisplay( Mat frame );
-String cascade_name = "dartcascade/cascade.xml";
-CascadeClassifier cascade;

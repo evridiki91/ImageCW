@@ -132,7 +132,7 @@ void detectAndDisplay( Mat frame )
 				//getting the % of overlap
 				double percentage = overlapRectanglePerc(truefaces[j],faces[i]);
 				printf("percentage of overlap  %f%%\n",percentage );
-				if (percentage > 70){
+				if (percentage > 65){
 					//increment the counter for correctly recognised faces and go to next face
 					counter++;
 					break; }
