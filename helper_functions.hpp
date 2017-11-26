@@ -17,6 +17,19 @@ float euclidean(Point a, Point b){
   return sqrt((b.y - a.y)*(b.y - a.y) + (b.x - a.x)*(b.x - a.x));
 }
 
+void drawCircles(vector<Vec3f> circles, Mat &frame, int color){
+  for( int i = 0; i < circles.size(); i++ )
+  {
+    // finding circle center and circle radius
+     Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+     int radius = cvRound(circles[i][2]);
+     //draw circle
+     if (color == 0) circle( frame, center, radius, Scalar(0,0,255), 3, 8, 0 );
+     if (color == 1) circle( frame, center, radius, Scalar(0,255,0), 3, 8, 0 );
+     if (color == 2) circle( frame, center, radius, Scalar(255,0,0), 3, 8, 0 );
+   }
+}
+
 /***********************************************************************
 Helper function to check the output of each matrix in order to be sure
 that everything works as expected. It was ussualy used for checking if the

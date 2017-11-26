@@ -2,6 +2,7 @@
 /** @function detectAndDisplay */
 void detectAndDisplay( Mat frame )
 {
+  //initialisations
 	std::vector<Rect> darts;
 	Mat frame_gray, blurred;
   Mat gradx = Mat::zeros(frame.rows, frame.cols,CV_64FC1);
@@ -16,8 +17,9 @@ void detectAndDisplay( Mat frame )
   //applying gaussian blur to get rid of noise
   GaussianBlur( frame_gray, blurred , Size(3,3), 0, 0, BORDER_DEFAULT );
   imwrite("blurred.jpg",blurred);
-  // calculating gradient for x and y
 
+  // calculating gradient for x and y
+  //sobel(src,dest,depth,x-order,y-order,kernel size, scale,delta)
   Sobel( blurred, gradx, CV_64FC1, 1, 0, 3, scaleFactorSobel, 0, BORDER_DEFAULT);
   Sobel( blurred, grady, CV_64FC1, 0, 1, 3, scaleFactorSobel, 0, BORDER_DEFAULT);
 
@@ -26,81 +28,81 @@ void detectAndDisplay( Mat frame )
   imwrite("gradx.jpg",gradx);
   imwrite("grady.jpg",grady);
 
-  // cartToPolar(gradx,grady,mag_non_normalised,dir);
+  //calculating the gradient magnitude
   gradient_magnitude(gradx,grady,mag);
   imwrite("magnitude.jpg",mag);
+  //threshold the magnitude image using the thresh variable
   threshold(mag,thr, thresh, maxValue, THRESH_BINARY);
   imwrite("threshold.jpg",thr);
+  //calculating the gradient direction
   gradient_direction(gradx,grady,dir);
-
   writeToCSV("dir.csv",dir);
 
   /*Parameters for Hough transform*/
   // int maxr = round(hypot(mag.size[0], mag.size[1]))/2; //hypotenous = diagonal of image
-  int maxr = 170; //works better than above apparently 200
+  int maxr = 170; //works better than above apparently
   int minr = 40;  //found through eyeballing.
 
-  vector<Vec3f> circles,circles1;
+  vector<Vec3f> circles,circles_concentric;
+  //display hough transform
   hough_circle(thr,dir, minr, maxr );
   printf("hough transform done\n");
   writeToCSV("dir.csv",dir);
 
   // Apply the Hough Transform to find the circles
+  //houghcircles(src,dest, method, accumulator resolution, min distance btw detected circles,
+  // threshold for edge detection, accumulator threshold(votes), minr,maxr  )
   HoughCircles( blurred, circles, CV_HOUGH_GRADIENT, 1, blurred.rows/8, cannyThresh, Houghthresh, minr,maxr);
-  for( int i = 0; i < circles.size(); i++ )
-  {
-     Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
-     int radius = cvRound(circles[i][2]);
-     // circle center
-     circle( frame, center, 3, Scalar(0,255,0), -1, 8, 0 );
-     // circle outline
-     circle( frame, center, radius, Scalar(0,0,255), 3, 8, 0 );
-   }
-   printf("found %d\n",circles.size());
+  drawCircles(circles, frame,0);
 
-   std::vector<Rect> circle_rect;
-   Point diagonal_a,diagonal_b,diagonal_a1,diagonal_b1;
-   Rect concentric;
-   for( size_t i = 0; i < circles.size(); i++ ){
+  printf("found %d\n",circles.size());
 
+	int concentric_bool[circles.size()];
+  std::vector<Rect> circle_rect;
+  Point diagonal_a,diagonal_b,diagonal_concentric_a,diagonal_concentric_b;
+  Rect concentric;
+  for( size_t i = 0; i < circles.size(); i++ ){
+    // creating rectangles to represent the circles found
      Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
      int radius = cvRound(circles[i][2]);
      diagonal_a = Point(center.x - radius, center.y - radius);
      diagonal_b = Point(center.x + radius, center.y + radius);
-     //calcualating inside square using trigonometry and pythagorean theorem
-     int width_2 = round( sqrt(2)*radius/2);
-     diagonal_a1 = Point(center.x - width_2, center.y - width_2);
-     diagonal_b1 = Point(center.x + width_2, center.y + width_2);
-
-     concentric = Rect(diagonal_a1,diagonal_b1);
-
-     HoughCircles( blurred(concentric), circles1, CV_HOUGH_GRADIENT, 1, concentric.width/8, cannyThresh/2, Houghthresh/2, radius/8,radius*3/4);
-     for( int j = 0; j < circles1.size(); j++ )
-     {
-        Point center(cvRound(circles1[i][0]+concentric.x), cvRound(circles1[i][1])+concentric.y);
-        int radius = cvRound(circles1[i][2]);
-        if (radius <= 0) continue;
-        circle( frame, center, radius, Scalar(255,0,0), 2, 8, 0 );
-      }
-      printf("%d\n",circles1.size());
-
-
      Rect rectangle_c = Rect(diagonal_a,diagonal_b);
      circle_rect.push_back(rectangle_c);
+
+     // finding whether a circle has a
+		 int width_2 = round( sqrt(2)*radius/2);
+		 diagonal_concentric_a = Point(center.x - width_2, center.y - width_2);
+		 diagonal_concentric_b = Point(center.x + width_2, center.y + width_2);
+		 concentric = Rect(diagonal_concentric_a,diagonal_concentric_b);
+		 HoughCircles( blurred(concentric), circles_concentric, CV_HOUGH_GRADIENT, 1, concentric.width/8, cannyThresh/2, Houghthresh/2, radius/8,radius*3/4);
+		 if (circles_concentric.size() > 0){
+			 for( int j = 0; j < circles_concentric.size(); j++ ) {
+		      Point center_conc(cvRound(circles_concentric[i][0]+concentric.x), cvRound(circles_concentric[i][1])+concentric.y);
+		      int radius_conc = cvRound(circles_concentric[i][2]);
+		      if (radius <= 0) {
+						concentric_bool[i] = 0;
+					}
+					else{
+						if (euclidean(center,center_conc) < 15){
+							concentric_bool[i] = 1;
+							printf("found concentric\n");
+							circle( frame, center_conc, radius_conc, Scalar(255,0,0), 2, 8, 0 );
+							break;
+						}
+						else concentric_bool[i] = 0;
+					}
+		    }
+			}
+			else {
+				concentric_bool[i] = 0;
+			}
    }
 
   // 2. Perform Viola-Jones Object Detection
 	// cascade.detectMultiScale( frame_gray, darts, 1.1, 1, 0|CV_HAAR_SCALE_IMAGE, Size(50, 50), Size(500,500) );
   // vector<Vec4i> lines;
-  // threshold(mag,thr, thresh, maxValue, THRESH_BINARY);
   //
-  // HoughLinesP(thr, lines, 1, CV_PI/180, 70, minr, 0 );
-  //
-  // for( size_t i = 0; i < lines.size(); i++ )
-  // {
-  //     line( frame, Point(lines[i][0], lines[i][1]),
-  //         Point(lines[i][2], lines[i][3]), Scalar(0,0,255), 2, 8 );
-  // }
   //
   // vector<Rect> final_rect;
   // Mat score_mat = Mat::zeros(circles.size(),darts.size(),CV_32F);
@@ -114,18 +116,25 @@ void detectAndDisplay( Mat frame )
   //   final_rect = circle_rect;
   // }
   // else{
-  //   //max distance?
-  //   float max_distance = (hypot(frame.size[0], frame.size[1]));
+  //
   //   for (int j = 0; j < darts.size(); j++){
   //     Point center_dart(darts[j].x+darts[j].width/2, darts[j].y+darts[j].height/2);
+  //
   //     for( int i = 0; i < circle_rect.size(); i++ ){
   //       Point center_circle(circle_rect[i].x+circle_rect[i].width/2, circle_rect[i].y+circle_rect[i].height/2);
-  //       float overlap = overlapRectanglePerc(darts[j],circle_rect[i]);
+  //
+	// 			float overlap = overlapRectanglePerc(darts[j],circle_rect[i]);
   //       printf("overlap of VJ %d and HT %d is %f\n",j,i,overlap);
+  //
   //       float distance = euclidean(center_dart,center_circle);
   //       printf("distance of VJ %d and HT %d is %f\n\n",j,i,distance);
   //
-  //       if (distance < 40 && overlap > 0 ){
+  //       int radius = cvRound(circles[i][2]);
+  //
+  //       if (overlap > 0 ){
+  //
+  //
+  //
   //
   //         // check normalised
   //         score_mat.at<float>(i,j) = (100-overlap) + (distance/max_distance)*100;
@@ -142,6 +151,14 @@ void detectAndDisplay( Mat frame )
   //     }
   //   }
   // }
+  //
+	// // HoughLinesP(thr, lines, 1, CV_PI/180, 70, minr, 0 );
+	// //
+	// // for( size_t i = 0; i < lines.size(); i++ )
+	// // {
+	// //     line( frame, Point(lines[i][0], lines[i][1]),
+	// //         Point(lines[i][2], lines[i][3]), Scalar(0,0,255), 2, 8 );
+	// // }
   //
   // printf("final rect size  %d\n",final_rect.size() );
   // printf("circle rect size  %d\n",circle_rect.size() );
