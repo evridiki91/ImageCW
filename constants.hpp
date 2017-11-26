@@ -36,8 +36,8 @@ thresh = value for tresholding function, anything above this
 ***********************************************************************/
 float scaleFactorSobel = 1.0;
 float thresh = 100;
-float Houghthresh = 70;
-float cannyThresh = 100;
+float Houghthresh = 105;
+float cannyThresh = 60;
 float maxValue = 255;
 
 String cascade_name = "dartcascade/cascade.xml";

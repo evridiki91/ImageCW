@@ -39,7 +39,7 @@ void detectAndDisplay( Mat frame )
   writeToCSV("dir.csv",dir);
 
   /*Parameters for Hough transform*/
-  // int maxr = round(hypot(mag.size[0], mag.size[1]))/2; //hypotenous = diagonal of image
+  // int maxr = round(hypot(mag.size[0], mag.size[1])/5); //hypotenous = diagonal of image
   int maxr = 170; //works better than above apparently
   int minr = 40;  //found through eyeballing.
 
@@ -99,13 +99,12 @@ void detectAndDisplay( Mat frame )
 			}
    }
 
+
   // 2. Perform Viola-Jones Object Detection
-	// cascade.detectMultiScale( frame_gray, darts, 1.1, 1, 0|CV_HAAR_SCALE_IMAGE, Size(50, 50), Size(500,500) );
+	cascade.detectMultiScale( frame_gray, darts, 1.1, 1, 0|CV_HAAR_SCALE_IMAGE, Size(50, 50), Size(500,500) );
   // vector<Vec4i> lines;
-  //
-  //
-  // vector<Rect> final_rect;
-  // Mat score_mat = Mat::zeros(circles.size(),darts.size(),CV_32F);
+  vector<Rect> final_rect, filtered_circles, filtered_darts;
+  // 
   // if ((darts.size() == 0) && (circles.size() == 0)) {
   //   final_rect.clear();
   // }
@@ -121,90 +120,103 @@ void detectAndDisplay( Mat frame )
   //     Point center_dart(darts[j].x+darts[j].width/2, darts[j].y+darts[j].height/2);
   //
   //     for( int i = 0; i < circle_rect.size(); i++ ){
-  //       Point center_circle(circle_rect[i].x+circle_rect[i].width/2, circle_rect[i].y+circle_rect[i].height/2);
-  //
-	// 			float overlap = overlapRectanglePerc(darts[j],circle_rect[i]);
-  //       printf("overlap of VJ %d and HT %d is %f\n",j,i,overlap);
-  //
-  //       float distance = euclidean(center_dart,center_circle);
+	// 			float overlap_perc;
+  //       Point center_circle(round(circle_rect[i].x+circle_rect[i].width/2),round(circle_rect[i].y+circle_rect[i].height/2));
+	// 			float distance = euclidean(center_dart,center_circle);
   //       printf("distance of VJ %d and HT %d is %f\n\n",j,i,distance);
   //
-  //       int radius = cvRound(circles[i][2]);
+	// 			if (!overlap(darts[j],circle_rect[i])) overlap_perc = 0;
+	// 			else overlap_perc = overlapRectanglePerc(darts[j],circle_rect[i]);
+  //       printf("overlap of VJ %d and HT %d is %f\n",j,i,overlap_perc);
   //
-  //       if (overlap > 0 ){
+  //       if (overlap_perc > 20 && distance < 50 && sizeBetween(2.5,darts[j],circle_rect[i])){
+	// 				//its a good circle and a good dart
+	// 				filtered_circles.push_back(circle_rect[i]);
+	// 			}
+	// 		}
+	// 		if (filtered_circles.size() > 0) filtered_darts.push_back(darts[j]);
+	// 	}
+	// 	Mat score_matrix = Mat::zeros(filtered_darts.size(), filtered_circles.size(),CV_32FC1);
+	// 	for (int i = 0; i < filtered_darts.size(); i++){
+	// 		for (int j = 0; j < filtered_circles.size(); j++){
   //
   //
   //
   //
-  //         // check normalised
-  //         score_mat.at<float>(i,j) = (100-overlap) + (distance/max_distance)*100;
-  //         printf("score is %f\n",score_mat.at<float>(i,j));
-  //         if (score_mat.at<float>(i,j) < 80) {
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
   //
   //           Rect correct = Rect(
   //             Point((darts[j].x+circle_rect[i].x)/2,(darts[j].y+circle_rect[i].y)/2),
   //             Point(((darts[j].x + darts[j].width)+ (circle_rect[i].x + circle_rect[i].width ))/2,
   //             ((darts[j].y + darts[j].height)+ (circle_rect[i].y + circle_rect[i].height ))/2));
   //           final_rect.push_back(correct);
-  //         }
   //       }
   //     }
   //   }
-  // }
-  //
-	// // HoughLinesP(thr, lines, 1, CV_PI/180, 70, minr, 0 );
-	// //
-	// // for( size_t i = 0; i < lines.size(); i++ )
-	// // {
-	// //     line( frame, Point(lines[i][0], lines[i][1]),
-	// //         Point(lines[i][2], lines[i][3]), Scalar(0,0,255), 2, 8 );
-	// // }
-  //
-  // printf("final rect size  %d\n",final_rect.size() );
-  // printf("circle rect size  %d\n",circle_rect.size() );
-  // printf("VJ rect size  %d\n",darts.size() );
-  //
-	// //counter for correctly recognised darts
-	// int counter = 0;
-  //
+	// HoughLinesP(thr, lines, 1, CV_PI/180, 70, minr, 0 );
+	//
+	// for( size_t i = 0; i < lines.size(); i++ )
+	// {
+	//     line( frame, Point(lines[i][0], lines[i][1]),
+	//         Point(lines[i][2], lines[i][3]), Scalar(0,0,255), 2, 8 );
+	// }
+
+  printf("final rect size  %d\n",final_rect.size() );
+  printf("circle rect size  %d\n",circle_rect.size() );
+  printf("VJ rect size  %d\n",darts.size() );
+
+	//counter for correctly recognised darts
+	int counter = 0;
+
   // for( size_t i = 0; i < circle_rect.size(); i++ ){
 	// 	rectangle(frame, Point(circle_rect[i].x, circle_rect[i].y), Point(circle_rect[i].x + circle_rect[i].width, circle_rect[i].y + circle_rect[i].height), Scalar( 255, 255, 0 ), 2);
 	// }
-  //
-  // for( size_t i = 0; i < darts.size(); i++ ){
-  //   rectangle(frame, Point(darts[i].x, darts[i].y), Point(darts[i].x + darts[i].width, darts[i].y + darts[i].height), Scalar( 0, 255, 0 ), 2);
-  // }
-  //
-	// //draw rectangle around detected darts
+
+  for( size_t i = 0; i < darts.size(); i++ ){
+    rectangle(frame, Point(darts[i].x, darts[i].y), Point(darts[i].x + darts[i].width, darts[i].y + darts[i].height), Scalar( 0, 255, 0 ), 2);
+  }
+
+	//draw rectangle around detected darts
 	// for( size_t i = 0; i < final_rect.size(); i++ ){
 	// 	rectangle(frame, Point(final_rect[i].x, final_rect[i].y), Point(final_rect[i].x + final_rect[i].width, final_rect[i].y + final_rect[i].height), Scalar( 0, 0, 255 ), 2);
 	// }
-  //
-	// //variable for storing the true face coordinates
-	// vector<Rect> truedarts(box, box + sizeof(box)/sizeof(box[0]));
-	// for (size_t j = 0; j<truedarts.size(); j++ ){
-	// 	rectangle(frame, Point(truedarts[j].x, truedarts[j].y), Point(truedarts[j].x + truedarts[j].width, truedarts[j].y + truedarts[j].height), Scalar( 255, 0, 0 ), 2);
-	// 	for( size_t i = 0; i < final_rect.size(); i++ ){
-	// 		//if they do not overlap then go to next iteration
-	// 		if (!overlap(truedarts[j],final_rect[i])){
-	// 			continue; }
-	// 		else {
-	// 			//getting the % of overlap
-	// 			float percentage = overlapRectanglePerc(truedarts[j],final_rect[i]);
-	// 			printf("percentage of overlap  %f%%\n",percentage );
-	// 			if (percentage > 65){
-  //         if (final_rect[i].area() <= 1.5*truedarts[j].area() ){
-  //   				//increment the counter for correctly recognised darts and go to next face
-  //   				counter++;
-  //   				break; }
-  //         }
-  //       }
-  //     }
-  //   }
-  //   printf("Found %d darts out of %d\n",counter,truedarts.size());
-  //   float f1 = f1score(final_rect.size(),truedarts.size(),counter);
-  //   printf("f1score is %lf\n",f1);
-  //   printf("size of final detections is  %d\n",final_rect.size());
+
+	//variable for storing the true face coordinates
+	vector<Rect> truedarts(box, box + sizeof(box)/sizeof(box[0]));
+	for (size_t j = 0; j<truedarts.size(); j++ ){
+		rectangle(frame, Point(truedarts[j].x, truedarts[j].y), Point(truedarts[j].x + truedarts[j].width, truedarts[j].y + truedarts[j].height), Scalar( 255, 0, 0 ), 2);
+		for( size_t i = 0; i < final_rect.size(); i++ ){
+			//if they do not overlap then go to next iteration
+			if (!overlap(truedarts[j],final_rect[i])){
+				continue; }
+			else {
+				//getting the % of overlap
+				float percentage = overlapRectanglePerc(truedarts[j],final_rect[i]);
+				printf("percentage of overlap  %f%%\n",percentage );
+				if (percentage > 65){
+          if (final_rect[i].area() <= 1.5*truedarts[j].area() ){
+    				//increment the counter for correctly recognised darts and go to next face
+    				counter++;
+    				break; }
+          }
+        }
+      }
+    }
+    printf("Found %d darts out of %d\n",counter,truedarts.size());
+    float f1 = f1score(final_rect.size(),truedarts.size(),counter);
+    printf("f1score is %lf\n",f1);
+    printf("size of final detections is  %d\n",final_rect.size());
 
 }
 

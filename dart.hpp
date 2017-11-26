@@ -151,7 +151,7 @@ float overlapRectanglePerc(Rect a, Rect b){
 	int bottom = min(a.y+a.height,b.y+b.height);
 	int width = right - left;
 	int height = bottom - top;
-
+  printf("w %d h %d ", width, height);
 	float overlappingArea = width*height;
 	float originalArea = (a.width)*(a.height);
 	float perc = overlappingArea/originalArea;

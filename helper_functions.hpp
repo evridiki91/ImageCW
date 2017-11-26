@@ -92,3 +92,8 @@ void log_mat(Mat &src, Mat &dst){
     }
   }
 }
+
+int sizeBetween(float perc, Rect a, Rect b){
+  if (a.area() <= perc* b.area() || b.area() <= perc* a.area()) return true;
+  else return false;
+}
