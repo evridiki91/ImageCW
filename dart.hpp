@@ -14,38 +14,38 @@ all the r's are summed up in each dimension to reduce the 3d accumulator
 to 2d
 ***********************************************************************/
 
-void hough_circle(Mat &thr, Mat &dir, int minr, int maxr ){
-
+void hough_circle(Mat thr, Mat dir, int minr, int maxr ){
   printf("inside hough\n");
-  Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_64F);
+
+  Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_64FC1);
   const int rows=thr.size[0], cols=thr.size[1], radii=maxr-minr;
   int dims[3] = {rows, cols, radii};
-  cv::Mat acc3d = Mat::zeros(3, dims, CV_64F);
+  cv::Mat acc3d = Mat::zeros(3, dims, CV_64FC1);
   //iterate through all pixels
+
   for (int y = 0 ; y < rows; y++){
     for (int x = 0 ; x < cols; x++){
       int pixel = thr.at<uchar>(y,x);
+      // printf("pixel : %d",pixel);
       //if an edge has not been detected go to next pixel
-      if ( pixel == 0) {
-        continue;
-      }
-      //if an edge has been detected go on to increment the accumulator
-      else{
+      if ( pixel == 255) {
         //Use gradient direction information as theta (+-0.02)
         double t = dir.at<double>(y,x);
           //iterate through all posible radii
-        for (int r = minr; r < maxr; r++){
-            int x0 = round(x -r * cos(t));
-            int y0 = round(y -r * sin(t));
+        for (int r = 0; r < radii; r++){
+            int x0 = (x -(r+minr) * cos(t));
+            int y0 = (y -(r+minr) * sin(t));
+            // printf("i %d j %d k %d i0%d j0%d",y,x,r,y0,x0);
             if(x0 >= 0 && y0 >= 0 && x0 < cols && y0 <  rows) {
               // increment accumulator
-              acc3d.at<double>( y0,x0,r-minr) += 1;
+              acc3d.at<double>( y0,x0,r) += 1;
             }
-            x0 = round(x + r * cos(t));
-            y0 = round(y + r * sin(t));
+            x0 = (x + (r+minr) * cos(t));
+            y0 = (y + (r+minr) * sin(t));
+            // printf("i1%d j1%d\n", y0,x0);
             if(x0 >= 0 && y0 >= 0 && x0 < cols && y0 <  rows) {
               // increment accumulator
-              acc3d.at<double>( y0,x0,r-minr) += 1;
+              acc3d.at<double>( y0,x0,r) += 1;
             }
           }
       }
@@ -54,16 +54,17 @@ void hough_circle(Mat &thr, Mat &dir, int minr, int maxr ){
   //accumulator 3d to 2d for visualisation purposes
   for (int y = 0 ; y < rows; y++){
     for (int x = 0 ; x < cols; x++){
-      for (int r = minr; r < maxr; r++){
+      for (int r = 0; r < maxr - minr ; r++){
         acc2d.at<double>(y,x) += acc3d.at<double>(y,x,r);
       }
-      acc2d.at<double>(y,x) *= 50;
     }
   }
   writeToCSV("hough_circle.csv",acc2d);
-  // convert(acc2d,acc2d,);
-  // log_mat(acc2d,acc2d);
+  double max,min;
+  minMaxLoc(acc2d, &min,&max);
+  convert(acc2d,acc2d,min,max);
   imwrite("hough_circle.jpg",acc2d);
+
 }
 
 
@@ -75,12 +76,11 @@ dir.
 
 void gradient_direction(Mat &dx,Mat &dy, Mat &dir){
   printf("Directioning\n" );
-  dir.create(dx.size(), dx.type() );
   for (int y = 0; y < dx.size[0]; y++){
     for (int x = 0; x < dx.size[1]; x++){
       double pointx = dx.at<double>(y,x);
       double pointy = dy.at<double>(y,x);
-      dir.at<double>(y,x) = atan2(pointy,pointx) ;   // - (CV_PI/2)
+      dir.at<double>(y,x) = atan2(pointy,pointx) ;
     }
   }
   printf("Finished Directioning\n" );
@@ -94,14 +94,15 @@ mag.
 
 void gradient_magnitude(Mat &dx,Mat &dy, Mat &mag){
   printf("Magnituding\n" );
-  mag.create(dx.size(), dx.type() );
+  Mat mag_non_normalised = Mat::zeros(dx.rows,dx.cols,CV_64FC1);
   for (int y = 0; y < dx.size[0]; y++){
     for (int x = 0; x < dx.size[1]; x++){
       double pointx = dx.at<double>(y,x);
       double pointy = dy.at<double>(y,x);
-      mag.at<double>(y,x) = sqrt(pointx*pointx +pointy*pointy) ;
+      mag_non_normalised.at<double>(y,x) = sqrt(pointx*pointx +pointy*pointy) ;
     }
   }
+  normalize(mag_non_normalised,mag,0, 255, NORM_MINMAX, CV_8UC1);
   printf("Finished Magnituding\n" );
 }
 
@@ -110,7 +111,7 @@ void gradient_magnitude(Mat &dx,Mat &dy, Mat &mag){
 
 void hough_line(Mat &thr, Mat &dir, int hough_threshold ){
   printf("inside hough");
-  Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_64F);
+  Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_64FC1);
   const int rows=thr.size[0], cols=thr.size[1];
   for (int y = 0 ; y < rows; y++){
     for (int x = 0 ; x < cols; x++){
