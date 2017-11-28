@@ -64,7 +64,60 @@ void hough_circle(Mat thr, Mat dir, int minr, int maxr ){
   minMaxLoc(acc2d, &min,&max);
   convert(acc2d,acc2d,min,max);
   imwrite("hough_circle.jpg",acc2d);
+}
 
+void hough_circle2(Mat thr, int minr, int maxr ){
+  printf("inside hough\n");
+
+  Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_64FC1);
+  const int rows=thr.size[0], cols=thr.size[1], radii=maxr-minr;
+  int dims[3] = {rows, cols, radii};
+  cv::Mat acc3d = Mat::zeros(3, dims, CV_64FC1);
+  //iterate through all pixels
+
+  for (int y = 0 ; y < rows; y++){
+    for (int x = 0 ; x < cols; x++){
+      int pixel = thr.at<uchar>(y,x);
+      // printf("pixel : %d",pixel);
+      //if an edge has not been detected go to next pixel
+      if ( pixel == 255) {
+        //Use gradient direction information as theta (+-0.02)
+        for (double t = - M_PI; t < M_PI; t+= 0.1){
+          //iterate through all posible radii
+          for (int r = 0; r < radii; r++){
+              int x0 = (x -(r+minr) * cos(t));
+              int y0 = (y -(r+minr) * sin(t));
+              // printf("i %d j %d k %d i0%d j0%d",y,x,r,y0,x0);
+              if(x0 >= 0 && y0 >= 0 && x0 < cols && y0 <  rows) {
+                // increment accumulator
+                acc3d.at<double>( y0,x0,r) += 1;
+              }
+              x0 = (x + (r+minr) * cos(t));
+              y0 = (y + (r+minr) * sin(t));
+              // printf("i1%d j1%d\n", y0,x0);
+              if(x0 >= 0 && y0 >= 0 && x0 < cols && y0 <  rows) {
+                // increment accumulator
+                acc3d.at<double>( y0,x0,r) += 1;
+              }
+            }
+          }
+      }
+    }
+  }
+  //accumulator 3d to 2d for visualisation purposes
+  for (int y = 0 ; y < rows; y++){
+    for (int x = 0 ; x < cols; x++){
+      for (int r = 0; r < maxr - minr ; r++){
+        acc2d.at<double>(y,x) += acc3d.at<double>(y,x,r);
+      }
+    }
+  }
+  writeToCSV("hough_circle2.csv",acc2d);
+  log_mat(acc2d,acc2d);
+  double max,min;
+  minMaxLoc(acc2d, &min,&max);
+  convert(acc2d,acc2d,min,max);
+  imwrite("hough_circle2.jpg",acc2d);
 }
 
 
@@ -109,7 +162,7 @@ void gradient_magnitude(Mat &dx,Mat &dy, Mat &mag){
 
 
 
-void hough_line(Mat &thr, Mat &dir, int hough_threshold ){
+void hough_line(Mat &thr, Mat &dir ){
   printf("inside hough");
   Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_64FC1);
   const int rows=thr.size[0], cols=thr.size[1];
@@ -121,18 +174,18 @@ void hough_line(Mat &thr, Mat &dir, int hough_threshold ){
       }
       else{
         float t = dir.at<float>(y,x);
-        for (float i = -0.1; i <= 1.1; i += 0.1){
-          int r = round(x*cos(t) + y*sin(t));
-          acc2d.at<float>(r,t) +=1;
+        int r = round(x*cos(t) + y*sin(t));
+        // if(r >= 0 && t >= 0 && t < cols && y0 <  rows) acc2d.at<float>(r,t) +=1;
         }
       }
     }
+    double min,max;
+    minMaxLoc(acc2d, &min,&max);
+    convert(acc2d,acc2d,min,max);
+    imwrite("hough_line.jpg",acc2d);
+    // writeToCSV("hough_circlenorm.csv",acc2d);
+
   }
-  writeToCSV("hough_circle.csv",acc2d);
-  // convert(acc2d,acc2d);
-  // writeToCSV("hough_circlenorm.csv",acc2d);
-  // imwrite("hough_circle.jpg",acc2d);
-}
 
 /***********************************************************************
 Calculates the overlapping percentage of two rectangles.
@@ -151,7 +204,7 @@ float overlapRectanglePerc(Rect a, Rect b){
 	int bottom = min(a.y+a.height,b.y+b.height);
 	int width = right - left;
 	int height = bottom - top;
-  printf("w %d h %d ", width, height);
+  printf(" l %d r %d t %d b %d w %d h %d ", left,right,top,bottom,width, height);
 	float overlappingArea = width*height;
 	float originalArea = (a.width)*(a.height);
 	float perc = overlappingArea/originalArea;

@@ -83,6 +83,17 @@ double f1score(double detected, double trueDetected, double correct){
 	return 2*tp/(2*tp+fp+fn);
 }
 
+int minIndex(vector<int> &vec){
+  int min = 99999;
+  int index = -1;
+  for (size_t i = 0; i < vec.size(); i++ ){
+    if (vec[i] < min ){
+      min = vec[i];
+      index = i;
+    }
+  }
+  return index;
+}
 
 void log_mat(Mat &src, Mat &dst){
   for (int i = 0; i < src.rows; i++){
