@@ -167,7 +167,8 @@ void detectAndDisplay( Mat frame )
 			for (size_t j = 0; j < darts.size(); j++){
 				printf("HT %d VJ %d\n",i,j);
  				printf("%d %d \n",overlap_array[i][j]);
-        if (overlap_array[i][j] > 40 && distance_array[i][j] < 25 && sizeBetween(2.5,darts[j],circle_rect[i])){
+				//&& sizeBetween(2.5,darts[j],circle_rect[i])
+        if (overlap_array[i][j] > 50 || (distance_array[i][j] < 40 )  ){
 					//its a good circle and a good dart
 					printf("good dart and circle found\n");
 					found = 1;
@@ -179,6 +180,7 @@ void detectAndDisplay( Mat frame )
 				for (size_t it = 0; it < filtered_darts.size(); it++){
 					area_vector.push_back(filtered_darts[it].area());
 				}
+
 				int index = minIndex(area_vector);
         Rect correct = Rect(
           Point((filtered_darts[index].x+circle_rect[i].x)/2,(filtered_darts[index].y+circle_rect[i].y)/2),
