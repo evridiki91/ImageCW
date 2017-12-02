@@ -58,9 +58,7 @@ void detectAndDisplay( Mat frame )
   vector<Vec3f> circles,circles_concentric,circles_test;
 	vector<Point2f> potentialLines;
   //display hough transform
-  // hough_circle(thr,dir, minr, maxr );
-
-	// hough_line(thr,dir);
+  hough_circle(thr,dir, minr, maxr,circles );
 
   // Apply the Hough Transform to find the circles
   //houghcircles(src,dest, method, accumulator resolution, min distance btw detected circles,
@@ -77,9 +75,7 @@ void detectAndDisplay( Mat frame )
 	  pt1.y = cvRound(y0 + 1000*(a));
 	  pt2.x = cvRound(x0 - 1000*(-b));
 	  pt2.y = cvRound(y0 - 1000*(a));
-		printf("x %d y %d x %d y %d \n",pt1.x,pt1.y,pt2.x,pt2.y);
 	  line( frame, pt1, pt2, Scalar(0,0,255), 3, CV_AA);
-		printf("a b %f %f",a,b);
 	}
 
 

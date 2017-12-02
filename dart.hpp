@@ -14,7 +14,7 @@ all the r's are summed up in each dimension to reduce the 3d accumulator
 to 2d
 ***********************************************************************/
 
-void hough_circle(Mat thr, Mat dir, int minr, int maxr ){
+void hough_circle(Mat thr, Mat dir, int minr, int maxr, vector<Vec3f> potentialCircles){
   printf("inside hough\n");
 
   Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_64FC1);
@@ -162,7 +162,9 @@ void hough_line(Mat &thr, Mat &dir, vector<Point2f> &potentialLines){
           for( int n = -no_neighbors; n <= no_neighbors; n++ ){
             int nei_x = m + r ;
             int nei_y = n + t_index;
-            if (!(m == 0 && n == 0) || nei_x < 0 || nei_x >= 2*diagonal || nei_y < 0 || nei_y <=degree_range*2/resolution){
+            if ((m == 0 && n == 0) || nei_x < 0 || nei_x >= 2*diagonal || nei_y < 0 || nei_y >= degree_range*2/resolution)
+              continue;
+            else{
               //not local maxima
               if (acc2d.at<double>(nei_x,nei_y) > peak){
                 breakLoop = true;
