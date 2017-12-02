@@ -7,56 +7,85 @@ void detectAndDisplay( Mat frame )
 	Mat frame_gray, blurred;
   Mat gradx = Mat::zeros(frame.rows, frame.cols,CV_64FC1);
   Mat grady = Mat::zeros(frame.rows, frame.cols,CV_64FC1);
-  Mat mag = Mat::zeros(frame.rows, frame.cols,CV_64FC1);
+	Mat gradx_norm = Mat::zeros(frame.rows, frame.cols,CV_8UC1);
+	Mat grady_norm = Mat::zeros(frame.rows, frame.cols,CV_8UC1);
+	Mat mag = Mat::zeros(frame.rows, frame.cols,CV_64FC1);
+	Mat mag_norm = Mat::zeros(frame.rows, frame.cols,CV_8UC1);
   Mat thr = Mat::zeros(frame.rows, frame.cols,CV_8UC1);
-  Mat dir = Mat::zeros(frame.rows, frame.cols,CV_64FC1);
+	Mat dir_norm = Mat::zeros(frame.rows, frame.cols,CV_8UC1);
+	Mat dir = Mat::zeros(frame.rows, frame.cols,CV_64FC1);
 
 	// 1. Prepare Image by turning it into Grayscale and normalising lighting
 	cvtColor( frame, frame_gray, CV_BGR2GRAY );
 	equalizeHist( frame_gray, frame_gray );
   //applying gaussian blur to get rid of noise
   GaussianBlur( frame_gray, blurred , Size(3,3), 0, 0, BORDER_DEFAULT );
-  imwrite("blurred.jpg",blurred);
+	imwrite("blurred.jpg",blurred);
 
   // calculating gradient for x and y
   //sobel(src,dest,depth,x-order,y-order,kernel size, scale,delta)
   Sobel( blurred, gradx, CV_64FC1, 1, 0, 3, scaleFactorSobel, 0, BORDER_DEFAULT);
   Sobel( blurred, grady, CV_64FC1, 0, 1, 3, scaleFactorSobel, 0, BORDER_DEFAULT);
+	convert(gradx,gradx_norm, -1020, 1020);
+	convert(grady,grady_norm, -1020, 1020);
 
   writeToCSV("gradx.csv",gradx);
   writeToCSV("grady.csv",grady);
-  imwrite("gradx.jpg",gradx);
-  imwrite("grady.jpg",grady);
+  imwrite("gradx.jpg",gradx_norm);
+  imwrite("grady.jpg",grady_norm);
 
   //calculating the gradient magnitude
   gradient_magnitude(gradx,grady,mag);
-  imwrite("magnitude.jpg",mag);
+	int max = round(sqrt(1020*1020 + 1020*1020));
+	convert(mag,mag_norm,0,max );
+	imwrite("magnitude.jpg",mag_norm);
   //threshold the magnitude image using the thresh variable
   threshold(mag,thr, thresh, maxValue, THRESH_BINARY);
   imwrite("threshold.jpg",thr);
   //calculating the gradient direction
   gradient_direction(gradx,grady,dir);
+	convert(dir,dir_norm,-CV_PI, CV_PI);
+	imwrite("dir.jpg",dir_norm);
   writeToCSV("dir.csv",dir);
 
   /*Parameters for Hough transform*/
   // int maxr = round(hypot(mag.size[0], mag.size[1])/5); //hypotenous = diagonal of image
-  int maxr = 170; //works better than above apparently
-  int minr = 40;  //found through eyeballing.
+  // int maxr = 170; //works better than above apparently
+  // int minr = 40;  //found through eyeballing.
+	int maxr = 100; //works better than above apparently
+  int minr = 15;  //found through eyeballing.
 
-  vector<Vec3f> circles,circles_concentric;
+  vector<Vec3f> circles,circles_concentric,circles_test;
+	vector<Point2f> potentialLines;
   //display hough transform
-  hough_circle(thr,dir, minr, maxr );
-	// hough_circle2(thr,minr, maxr);
+  // hough_circle(thr,dir, minr, maxr );
 
 	// hough_line(thr,dir);
-  printf("hough transform done\n");
-  writeToCSV("dir.csv",dir);
 
   // Apply the Hough Transform to find the circles
   //houghcircles(src,dest, method, accumulator resolution, min distance btw detected circles,
   // threshold for edge detection, accumulator threshold(votes), minr,maxr  )
-  HoughCircles( blurred, circles, CV_HOUGH_GRADIENT, 1, blurred.rows/8, cannyThresh, Houghthresh, minr,maxr);
-  drawCircles(circles, frame,0);
+	hough_line(thr, dir, potentialLines, thr.size[0]/4);
+
+	for( size_t i = 0; i < potentialLines.size(); i++ )
+	{
+	  float rho = potentialLines[i].x, theta = potentialLines[i].y;
+	  Point pt1, pt2;
+	  double a = cosd(theta), b = sind(theta);
+	  double x0 = a*rho, y0 = b*rho;
+	  pt1.x = cvRound(x0 + 1000*(-b));
+	  pt1.y = cvRound(y0 + 1000*(a));
+	  pt2.x = cvRound(x0 - 1000*(-b));
+	  pt2.y = cvRound(y0 - 1000*(a));
+		printf("x %d y %d x %d y %d \n",pt1.x,pt1.y,pt2.x,pt2.y);
+	  line( frame, pt1, pt2, Scalar(0,0,255), 3, CV_AA);
+		printf("a b %f %f",a,b);
+	}
+
+
+	// HoughCircles( blurred, circles, CV_HOUGH_GRADIENT, 1, blurred.rows/8, cannyThresh, Houghthresh, minr,maxr);
+  // drawCircles(circles, frame,0);
+	printf("hough transform done\n");
 
   printf("found %d\n",circles.size());
 

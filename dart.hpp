@@ -30,7 +30,7 @@ void hough_circle(Mat thr, Mat dir, int minr, int maxr ){
       //if an edge has not been detected go to next pixel
       if ( pixel == 255) {
         //Use gradient direction information as theta (+-0.02)
-        double t = dir.at<double>(y,x);
+        double t = dir.at<double>(y,x) ;
           //iterate through all posible radii
         for (int r = 0; r < radii; r++){
             int x0 = (x -(r+minr) * cos(t));
@@ -60,64 +60,13 @@ void hough_circle(Mat thr, Mat dir, int minr, int maxr ){
     }
   }
   writeToCSV("hough_circle.csv",acc2d);
+  imwrite("hough_circle_norm.jpg",acc2d);
   double max,min;
   minMaxLoc(acc2d, &min,&max);
   convert(acc2d,acc2d,min,max);
   imwrite("hough_circle.jpg",acc2d);
-}
 
-void hough_circle2(Mat thr, int minr, int maxr ){
-  printf("inside hough\n");
 
-  Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_64FC1);
-  const int rows=thr.size[0], cols=thr.size[1], radii=maxr-minr;
-  int dims[3] = {rows, cols, radii};
-  cv::Mat acc3d = Mat::zeros(3, dims, CV_64FC1);
-  //iterate through all pixels
-
-  for (int y = 0 ; y < rows; y++){
-    for (int x = 0 ; x < cols; x++){
-      int pixel = thr.at<uchar>(y,x);
-      // printf("pixel : %d",pixel);
-      //if an edge has not been detected go to next pixel
-      if ( pixel == 255) {
-        //Use gradient direction information as theta (+-0.02)
-        for (double t = - M_PI; t < M_PI; t+= 0.1){
-          //iterate through all posible radii
-          for (int r = 0; r < radii; r++){
-              int x0 = (x -(r+minr) * cos(t));
-              int y0 = (y -(r+minr) * sin(t));
-              // printf("i %d j %d k %d i0%d j0%d",y,x,r,y0,x0);
-              if(x0 >= 0 && y0 >= 0 && x0 < cols && y0 <  rows) {
-                // increment accumulator
-                acc3d.at<double>( y0,x0,r) += 1;
-              }
-              x0 = (x + (r+minr) * cos(t));
-              y0 = (y + (r+minr) * sin(t));
-              // printf("i1%d j1%d\n", y0,x0);
-              if(x0 >= 0 && y0 >= 0 && x0 < cols && y0 <  rows) {
-                // increment accumulator
-                acc3d.at<double>( y0,x0,r) += 1;
-              }
-            }
-          }
-      }
-    }
-  }
-  //accumulator 3d to 2d for visualisation purposes
-  for (int y = 0 ; y < rows; y++){
-    for (int x = 0 ; x < cols; x++){
-      for (int r = 0; r < maxr - minr ; r++){
-        acc2d.at<double>(y,x) += acc3d.at<double>(y,x,r);
-      }
-    }
-  }
-  writeToCSV("hough_circle2.csv",acc2d);
-  log_mat(acc2d,acc2d);
-  double max,min;
-  minMaxLoc(acc2d, &min,&max);
-  convert(acc2d,acc2d,min,max);
-  imwrite("hough_circle2.jpg",acc2d);
 }
 
 
@@ -133,9 +82,11 @@ void gradient_direction(Mat &dx,Mat &dy, Mat &dir){
     for (int x = 0; x < dx.size[1]; x++){
       double pointx = dx.at<double>(y,x);
       double pointy = dy.at<double>(y,x);
-      dir.at<double>(y,x) = atan2(pointy,pointx) ;
+      if (pointx == 0) dir.at<double>(y,x) = 0;
+      else dir.at<double>(y,x) = atan(pointy/pointx) ;
     }
   }
+  writeToCSV("dir.csv",dir);
   printf("Finished Directioning\n" );
 }
 
@@ -155,17 +106,19 @@ void gradient_magnitude(Mat &dx,Mat &dy, Mat &mag){
       mag_non_normalised.at<double>(y,x) = sqrt(pointx*pointx +pointy*pointy) ;
     }
   }
+  writeToCSV("mag_non_normalised.csv",mag_non_normalised);
   normalize(mag_non_normalised,mag,0, 255, NORM_MINMAX, CV_8UC1);
   printf("Finished Magnituding\n" );
 }
 
-
-
-
-void hough_line(Mat &thr, Mat &dir ){
-  printf("inside hough");
-  Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_64FC1);
+void hough_line(Mat &thr, Mat &dir, vector<Point2f> &potentialLines, int distance_limit){
   const int rows=thr.size[0], cols=thr.size[1];
+  printf("inside hough");
+  int diagonal = floor(sqrt(rows*rows + cols*cols));
+  int degree_range = 90;
+  float resolution = 1;
+  Mat acc2d = Mat::zeros(diagonal*2, degree_range*2/resolution,CV_64FC1);
+  Mat acc2d_norm = Mat::zeros(diagonal*2, degree_range*2/resolution,CV_64FC1);
   for (int y = 0 ; y < rows; y++){
     for (int x = 0 ; x < cols; x++){
       int pixel = thr.at<uchar>(y,x);
@@ -173,19 +126,76 @@ void hough_line(Mat &thr, Mat &dir ){
         continue;
       }
       else{
-        float t = dir.at<float>(y,x);
-        int r = round(x*cos(t) + y*sin(t));
-        // if(r >= 0 && t >= 0 && t < cols && y0 <  rows) acc2d.at<float>(r,t) +=1;
+        for (float t = -90; t < 90; t+=resolution){
+          int r = round(x*cosd(t) + y*sind(t));
+          int t_index = (t+90)*(1/resolution) ;
+          if(r >= -diagonal && t_index >=0 && t_index < degree_range*2/resolution && r <  diagonal) {
+            acc2d.at<double>( r+diagonal,t_index) +=1;
+          }
         }
       }
     }
-    double min,max;
-    minMaxLoc(acc2d, &min,&max);
-    convert(acc2d,acc2d,min,max);
-    imwrite("hough_line.jpg",acc2d);
-    // writeToCSV("hough_circlenorm.csv",acc2d);
-
   }
+  writeToCSV("hough_line.csv",acc2d);
+  printf("Finished hough");
+
+  // log_mat(acc2d,acc2d_norm);
+  // writeToCSV("houghline_log.csv",acc2d_norm);
+
+  double max,min;
+  minMaxLoc(acc2d, &min,&max);
+  convert(acc2d,acc2d_norm,0,max);
+  resize(acc2d_norm,acc2d_norm, Size(512, 512)) ;
+
+  writeToCSV("hough_linenorm.csv",acc2d);
+  printf("finding lcoal maxima\n");
+
+  for (int r = -diagonal; r < diagonal; r++) {
+    for (float t = -90 ; t <90; t+=resolution){
+      int t_index = (t+90)*(1/resolution);
+      int peak = acc2d.at<double>(r+diagonal,t_index);
+      if (peak < Houghthresh) continue;
+      else {
+        int isMax = true;
+        int isNew = true;
+        Point2f point = Point(r+diagonal,t_index);
+        int i;
+        for ( i = 0; i < potentialLines.size(); i++){
+          int t_potential = potentialLines[i].y;
+          int r_potential = potentialLines[i].x;
+          if ( peak > acc2d.at<double>(r_potential,t_potential)){
+            isMax = true;
+            if (euclidean(potentialLines[i],point) < distance_limit) isNew = false;
+            else isNew = true;
+            break;
+          }
+          else{
+            isMax = false;
+          }
+        }
+        if (isMax){
+          if (potentialLines.size() == 0) potentialLines.push_back(point);
+          else {
+            if (isNew){
+              potentialLines.erase(potentialLines.begin()+i);
+              potentialLines.push_back(point);
+            }
+            else potentialLines.push_back(point);
+          }
+        }
+      }
+    }
+  }
+  printf("potential x %d y %d\n",potentialLines[0].x,potentialLines[0].y);
+
+  for ( int index = 0; index < potentialLines.size(); index++){
+    potentialLines[index].x -= diagonal;
+    potentialLines[index].y = (potentialLines[index].y*resolution)-90;
+  }
+  imwrite("hough_line.jpg",acc2d_norm);
+  printf(" Potential lines = %d\n",potentialLines.size());
+}
+
 
 /***********************************************************************
 Calculates the overlapping percentage of two rectangles.

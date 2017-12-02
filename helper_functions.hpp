@@ -13,6 +13,9 @@ void convert(Mat &src,Mat &dst, float min, float max){
 Calculates the Euclidean distance between two Points
 ***********************************************************************/
 
+#define sind(x) (sin((x) * M_PI /180))
+#define cosd(x) (cos((x) * M_PI /180))
+
 float euclidean(Point a, Point b){
   return sqrt((b.y - a.y)*(b.y - a.y) + (b.x - a.x)*(b.x - a.x));
 }
