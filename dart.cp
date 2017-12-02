@@ -65,7 +65,7 @@ void detectAndDisplay( Mat frame )
   // Apply the Hough Transform to find the circles
   //houghcircles(src,dest, method, accumulator resolution, min distance btw detected circles,
   // threshold for edge detection, accumulator threshold(votes), minr,maxr  )
-	hough_line(thr, dir, potentialLines, thr.size[0]/4);
+	hough_line(thr, dir, potentialLines);
 
 	for( size_t i = 0; i < potentialLines.size(); i++ )
 	{

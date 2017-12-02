@@ -111,7 +111,7 @@ void gradient_magnitude(Mat &dx,Mat &dy, Mat &mag){
   printf("Finished Magnituding\n" );
 }
 
-void hough_line(Mat &thr, Mat &dir, vector<Point2f> &potentialLines, int distance_limit){
+void hough_line(Mat &thr, Mat &dir, vector<Point2f> &potentialLines){
   const int rows=thr.size[0], cols=thr.size[1];
   printf("inside hough");
   int diagonal = floor(sqrt(rows*rows + cols*cols));
@@ -119,6 +119,7 @@ void hough_line(Mat &thr, Mat &dir, vector<Point2f> &potentialLines, int distanc
   float resolution = 1;
   Mat acc2d = Mat::zeros(diagonal*2, degree_range*2/resolution,CV_64FC1);
   Mat acc2d_norm = Mat::zeros(diagonal*2, degree_range*2/resolution,CV_64FC1);
+  Mat acc2d_display;
   for (int y = 0 ; y < rows; y++){
     for (int x = 0 ; x < cols; x++){
       int pixel = thr.at<uchar>(y,x);
@@ -136,63 +137,50 @@ void hough_line(Mat &thr, Mat &dir, vector<Point2f> &potentialLines, int distanc
       }
     }
   }
-  writeToCSV("hough_line.csv",acc2d);
   printf("Finished hough");
-
-  // log_mat(acc2d,acc2d_norm);
-  // writeToCSV("houghline_log.csv",acc2d_norm);
 
   double max,min;
   minMaxLoc(acc2d, &min,&max);
   convert(acc2d,acc2d_norm,0,max);
-  resize(acc2d_norm,acc2d_norm, Size(512, 512)) ;
+  resize(acc2d_norm,acc2d_display, Size(512, 512)) ;
+  printf("finding local maxima\n");
+  writeToCSV("acc2d.csv",acc2d);
+  writeToCSV("acc2d_norm.csv",acc2d_norm);
+  writeToCSV("acc2d_display.csv",acc2d_display);
 
-  writeToCSV("hough_linenorm.csv",acc2d);
-  printf("finding lcoal maxima\n");
+  int breakLoop = false;
 
-  for (int r = -diagonal; r < diagonal; r++) {
+  for (int r = 0; r < 2*diagonal; r++) {
     for (float t = -90 ; t <90; t+=resolution){
+      breakLoop = false;
       int t_index = (t+90)*(1/resolution);
-      int peak = acc2d.at<double>(r+diagonal,t_index);
-      if (peak < Houghthresh) continue;
-      else {
-        int isMax = true;
-        int isNew = true;
-        Point2f point = Point(r+diagonal,t_index);
-        int i;
-        for ( i = 0; i < potentialLines.size(); i++){
-          int t_potential = potentialLines[i].y;
-          int r_potential = potentialLines[i].x;
-          if ( peak > acc2d.at<double>(r_potential,t_potential)){
-            isMax = true;
-            if (euclidean(potentialLines[i],point) < distance_limit) isNew = false;
-            else isNew = true;
-            break;
-          }
-          else{
-            isMax = false;
-          }
-        }
-        if (isMax){
-          if (potentialLines.size() == 0) potentialLines.push_back(point);
-          else {
-            if (isNew){
-              potentialLines.erase(potentialLines.begin()+i);
-              potentialLines.push_back(point);
+      int peak = acc2d.at<double>(r,t_index);
+      if (peak > Houghthresh) {
+
+        for( int m = -no_neighbors; m <= no_neighbors; m++ ){
+          if (breakLoop) break;
+          for( int n = -no_neighbors; n <= no_neighbors; n++ ){
+            int nei_x = m + r ;
+            int nei_y = n + t_index;
+            if (!(m == 0 && n == 0) || nei_x < 0 || nei_x >= 2*diagonal || nei_y < 0 || nei_y <=degree_range*2/resolution){
+              //not local maxima
+              if (acc2d.at<double>(nei_x,nei_y) > peak){
+                breakLoop = true;
+                break;
+              }
             }
-            else potentialLines.push_back(point);
           }
         }
+        if (breakLoop) continue;
+        else potentialLines.push_back(Point(r,t_index));
       }
     }
   }
-  printf("potential x %d y %d\n",potentialLines[0].x,potentialLines[0].y);
-
   for ( int index = 0; index < potentialLines.size(); index++){
     potentialLines[index].x -= diagonal;
     potentialLines[index].y = (potentialLines[index].y*resolution)-90;
   }
-  imwrite("hough_line.jpg",acc2d_norm);
+  imwrite("hough_line.jpg",acc2d_display);
   printf(" Potential lines = %d\n",potentialLines.size());
 }
 
