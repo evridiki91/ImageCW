@@ -224,10 +224,10 @@ void detectAndDisplay( Mat frame )
 			final_rect.push_back(correct);
 			printf("pushing correct\n");
 			filtered_darts.clear();
-			area_vector.clear();
+			area_vector.clear();IN
 	 }
 	}
-	// if (final_rect.size() == 0) 
+	// if (final_rect.size() == 0)
 }
   printf("final rect size  %d\n",final_rect.size() );
   printf("circle rect size  %d\n",circle_rect.size() );
