@@ -185,40 +185,50 @@ void detectAndDisplay( Mat frame )
 				printf(" DISTANCE %d %d %d\n",j,i,distance_array[i][j]);
 			}
 		}
-
+		Rect correct;
 		for( size_t i = 0; i < circle_rect.size(); i++ ){
-			int found = 0;
 			for (size_t j = 0; j < darts.size(); j++){
+
 				printf("HT %d VJ %d\n",i,j);
  				printf("%d \n",overlap_array[i][j]);
 				//&& sizeBetween(2.5,darts[j],circle_rect[i])
-        if (overlap_array[i][j] > 50 || (distance_array[i][j] < 40 )  ){
+				if (concentric_bool[i]){
+					if (distance_array[i][j] < 40)
+						filtered_darts.push_back(darts[j]);
+				}
+				else{
+        if ((overlap_array[i][j] > 50 || (distance_array[i][j] < 40))  ){
 					//its a good circle and a good dart
 					printf("good dart and circle found\n");
-					found = 1;
 					filtered_darts.push_back(darts[j]);
 				}
 			}
-			if (found == 1) {
-				for (size_t it = 0; it < filtered_darts.size(); it++){
-					area_vector.push_back(filtered_darts[it].area());
-				}
-
-				int index = minIndex(area_vector);
-				Rect correct;
-				if (concentric_bool[index])
-				correct = Rect(
-					Point((filtered_darts[index].x+circle_rect[i].x)/2,(filtered_darts[index].y+circle_rect[i].y)/2),
-          Point(((filtered_darts[index].x + filtered_darts[index].width)+ (circle_rect[i].x + circle_rect[i].width ))/2,
-          ((filtered_darts[index].y + filtered_darts[index].height)+ (circle_rect[i].y + circle_rect[i].height ))/2));
-        else correct = Rect(
-          Point((filtered_darts[index].x+circle_rect[i].x)/2,(filtered_darts[index].y+circle_rect[i].y)/2),
-          Point(((filtered_darts[index].x + filtered_darts[index].width)+ (circle_rect[i].x + circle_rect[i].width ))/2,
-          ((filtered_darts[index].y + filtered_darts[index].height)+ (circle_rect[i].y + circle_rect[i].height ))/2));
-        final_rect.push_back(correct);
-			}
 		}
-  }
+		if (filtered_darts.size() > 0) {
+			for (size_t it = 0; it < filtered_darts.size(); it++){
+					area_vector.push_back(abs(filtered_darts[it].area() - circle_rect[i].area()) );
+				}
+			int index = minIndex(area_vector);
+			if (concentric_bool[i]){
+				correct = Rect(
+					Point((0.25*filtered_darts[index].x+ 0.75*circle_rect[i].x),(0.25*filtered_darts[index].y+0.75*circle_rect[i].y)),
+					Point(((filtered_darts[index].x + filtered_darts[index].width)*0.25+ (circle_rect[i].x + circle_rect[i].width )*0.75),
+					((filtered_darts[index].y + filtered_darts[index].height)*0.25 + (circle_rect[i].y + circle_rect[i].height ) *0.75)));
+			}
+			else{
+       correct = Rect(
+        Point((filtered_darts[index].x+circle_rect[i].x)/2,(filtered_darts[index].y+circle_rect[i].y)/2),
+        Point(((filtered_darts[index].x + filtered_darts[index].width)+ (circle_rect[i].x + circle_rect[i].width ))/2,
+        ((filtered_darts[index].y + filtered_darts[index].height)+ (circle_rect[i].y + circle_rect[i].height ))/2));
+			}
+			final_rect.push_back(correct);
+			printf("pushing correct\n");
+			filtered_darts.clear();
+			area_vector.clear();
+	 }
+	}
+	// if (final_rect.size() == 0) 
+}
   printf("final rect size  %d\n",final_rect.size() );
   printf("circle rect size  %d\n",circle_rect.size() );
   printf("VJ rect size  %d\n",darts.size() );
@@ -226,17 +236,12 @@ void detectAndDisplay( Mat frame )
 	//counter for correctly recognised darts
 	int counter = 0;
 
-  // for( size_t i = 0; i < filtered_darts.size(); i++ ){
-	// 	rectangle(frame, Point(filtered_darts[i].x, filtered_darts[i].y), Point(filtered_darts[i].x + filtered_darts[i].width, filtered_darts[i].y + filtered_darts[i].height), Scalar( 0, 255, 0 ), 2);
-	// }
-
-	// for( size_t i = 0; i < circle_rect.size(); i++ ){
-	// 	rectangle(frame, Point(circle_rect[i].x, circle_rect[i].y), Point(circle_rect[i].x + circle_rect[i].width, circle_rect[i].y + circle_rect[i].height), Scalar( 255, 255, 255 ), 2);
-	// }
-  // for( size_t i = 0; i < darts.size(); i++ ){
-  //   rectangle(frame, Point(darts[i].x, darts[i].y), Point(darts[i].x + darts[i].width, darts[i].y + darts[i].height), Scalar( 255, 0, 255 ), 2);
-  // }
-	printf("filtered_darts %d\n",filtered_darts.size());
+	for( size_t i = 0; i < circle_rect.size(); i++ ){
+		rectangle(frame, Point(circle_rect[i].x, circle_rect[i].y), Point(circle_rect[i].x + circle_rect[i].width, circle_rect[i].y + circle_rect[i].height), Scalar( 255, 255, 255 ), 2);
+	}
+  for( size_t i = 0; i < darts.size(); i++ ){
+    rectangle(frame, Point(darts[i].x, darts[i].y), Point(darts[i].x + darts[i].width, darts[i].y + darts[i].height), Scalar( 255, 0, 255 ), 2);
+  }
 	// draw rectangle around detected darts
 	for( size_t i = 0; i < final_rect.size(); i++ ){
 		rectangle(frame, Point(final_rect[i].x, final_rect[i].y), Point(final_rect[i].x + final_rect[i].width, final_rect[i].y + final_rect[i].height), Scalar( 0, 255, 255 ), 2);
