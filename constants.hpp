@@ -37,7 +37,7 @@ Houghthresh, CircleHoughthresh = threshold for hough transform (lines and circle
 
 ***********************************************************************/
 float scaleFactorSobel = 1.0;
-float thresh = 55;
+float thresh = 65;
 float maxValue = 255;
 float Houghthresh = 80;
 float circleHoughthresh = 80;

@@ -298,7 +298,7 @@ int overlapRectanglePerc(Rect a, Rect b){
   //calculates the width and height of the overlaping rectangle
 	int width = right - left;
 	int height = bottom - top;
-  printf(" l %d r %d t %d b %d w %d h %d ", left,right,top,bottom,width, height);
+  printf("Overlap dimensions l %d r %d t %d b %d w %d h %d \n", left,right,top,bottom,width, height);
   //calculates the overlapping area and the reference(original) area
   float overlappingArea = width*height;
 	float originalArea = (a.width)*(a.height);

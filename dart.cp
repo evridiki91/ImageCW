@@ -53,8 +53,8 @@ void detectAndDisplay( Mat frame )
 
   /*Parameters for Hough transform*/
   // int maxr = round(hypot(mag.size[0], mag.size[1])/2); //hypotenous = diagonal of image
-  int maxr = 170; //works better than above apparently
-  int minr = 40;  //found through eyeballing.
+  int maxr = 110; //works better than above apparently
+  int minr = 30;  //found through eyeballing.
 	// int maxr = 100; //good for coin images
   // int minr = 15;  //good for coin images
 
@@ -158,71 +158,68 @@ void detectAndDisplay( Mat frame )
   }
 
   else{
-		//storing whether a circle was pushed into the final detections due
-		// to concentric circle detection
-
 		int distance_array[darts.size()][circle_rect.size()];
 		int overlap_array[darts.size()][circle_rect.size()];
 		//arrays to store distance/overlap % between each dart and circle
-		for( size_t i = 0; i < circle_rect.size(); i++ ){
-			for (size_t j = 0; j < darts.size(); j++){
-				Point center_circle(cvRound(circles[i][0]),cvRound(circles[i][1]));
-				Point center_dart(cvRound(darts[j].x+darts[j].width/2), cvRound(darts[j].y+darts[j].height/2));
+		for( int c_i = 0; c_i < circle_rect.size(); c_i++ ){
+			for (int d_i = 0; d_i < darts.size(); d_i++){
+				Point center_circle(cvRound(circles[c_i][0]),cvRound(circles[c_i][1]));
+				Point center_dart(cvRound(darts[d_i].x+darts[d_i].width/2), cvRound(darts[d_i].y+darts[d_i].height/2));
 
-				distance_array[i][j] = cvRound(euclidean(center_dart,center_circle));
-				int overlap_perc;
-				if (!overlap(darts[j],circle_rect[i])) overlap_perc = 0;
-				else overlap_perc = overlapRectanglePerc(darts[j],circle_rect[i]);
-				overlap_array[i][j] = cvRound(overlap_perc);
-				printf("dart x %d y %d ",center_dart.x,center_dart.y);
-				printf("circle x %d y %d ",center_circle.x,center_circle.y);
+				distance_array[d_i][c_i] = cvRound(euclidean(center_dart,center_circle));
+				int overlap_perc = 0;
+				if (overlap(darts[d_i],circle_rect[c_i])){
+					overlap_perc = overlapRectanglePerc(darts[d_i],circle_rect[c_i]);
+				}
+				overlap_array[d_i][c_i] = overlap_perc;
+				printf("VJ %d: x %d y %d \n",d_i,center_dart.x,center_dart.y);
+				printf("Circle %d: x %d y %d \n",c_i,center_circle.x,center_circle.y);
 
-				printf("distance of VJ %d and HT %d is %d\n",j,i, distance_array[i][j] );
-				printf("overlap of VJ %d and HT %d is %d\n\n",j,i,overlap_array[i][j] );
+				printf("distance of VJ %d and HT %d is %d\n",d_i,c_i, distance_array[d_i][c_i] );
+				printf("overlap of VJ %d and HT %d is %d\n\n",d_i,c_i,overlap_array[d_i][c_i] );
 			}
 		}
 
-		for( size_t i = 0; i < circle_rect.size(); i++ ){
-			for (size_t j = 0; j < darts.size(); j++){
-				printf(" OVERLAP %d %d %d\n",j,i,overlap_array[i][j]);
-				printf(" DISTANCE %d %d %d\n",j,i,distance_array[i][j]);
-			}
-		}
-		Rect correct;
-		for( size_t i = 0; i < circle_rect.size(); i++ ){
-			for (size_t j = 0; j < darts.size(); j++){
+		for( int c_i = 0; c_i < circle_rect.size(); c_i++ ){
+			Rect correct;
+			for (int d_i = 0; d_i < darts.size(); d_i++){
 
-				printf("HT %d VJ %d\n",i,j);
- 				printf("%d \n",overlap_array[i][j]);
 				//&& sizeBetween(2.5,darts[j],circle_rect[i])
-				if (concentric_bool[i]){
-					if (distance_array[i][j] < 40)
-						filtered_darts.push_back(darts[j]);
+				if (concentric_bool[c_i]){
+					if (distance_array[d_i][c_i] < 40 && overlap_array[d_i][c_i] > 0){
+						printf("\ngood dart and concentric circle found\n");
+						printf("distance of VJ %d and HT %d is %d\n",d_i,c_i, distance_array[d_i][c_i] );
+						printf("overlap of VJ %d and HT %d is %d\n\n",d_i,c_i,overlap_array[d_i][c_i] );
+						filtered_darts.push_back(darts[d_i]);
+					}
 				}
 				else{
-        if ((overlap_array[i][j] > 50 || (distance_array[i][j] < 40))  ){
+        if ((overlap_array[d_i][c_i] > 50 || (distance_array[d_i][c_i] < 40))  ){
 					//its a good circle and a good dart
-					printf("good dart and circle found\n");
-					filtered_darts.push_back(darts[j]);
+					printf("\ngood dart and circle found\n");
+					printf("distance of VJ %d and HT %d is %d\n",d_i,c_i, distance_array[d_i][c_i] );
+					printf("overlap of VJ %d and HT %d is %d\n\n",d_i,c_i,overlap_array[d_i][c_i] );
+					filtered_darts.push_back(darts[d_i]);
 				}
 			}
 		}
 		if (filtered_darts.size() > 0) {
-			for (size_t it = 0; it < filtered_darts.size(); it++){
-					area_vector.push_back(abs(filtered_darts[it].area() - circle_rect[i].area()) );
+			for (size_t f_i = 0; f_i < filtered_darts.size(); f_i++){
+					area_vector.push_back(abs(filtered_darts[f_i].area() - circle_rect[c_i].area()) );
 				}
 			int index = minIndex(area_vector);
-			if (concentric_bool[i]){
+			if (concentric_bool[c_i]){
+
 				correct = Rect(
-					Point((0.25*filtered_darts[index].x+ 0.75*circle_rect[i].x),(0.25*filtered_darts[index].y+0.75*circle_rect[i].y)),
-					Point(((filtered_darts[index].x + filtered_darts[index].width)*0.25+ (circle_rect[i].x + circle_rect[i].width )*0.75),
-					((filtered_darts[index].y + filtered_darts[index].height)*0.25 + (circle_rect[i].y + circle_rect[i].height ) *0.75)));
+					Point((0.25*filtered_darts[index].x+ 0.75*circle_rect[c_i].x),(0.25*filtered_darts[index].y+0.75*circle_rect[c_i].y)),
+					Point(((filtered_darts[index].x + filtered_darts[index].width)*0.25+ (circle_rect[c_i].x + circle_rect[c_i].width )*0.75),
+					((filtered_darts[index].y + filtered_darts[index].height)*0.25 + (circle_rect[c_i].y + circle_rect[c_i].height ) *0.75)));
 			}
 			else{
        correct = Rect(
-        Point((filtered_darts[index].x+circle_rect[i].x)/2,(filtered_darts[index].y+circle_rect[i].y)/2),
-        Point(((filtered_darts[index].x + filtered_darts[index].width)+ (circle_rect[i].x + circle_rect[i].width ))/2,
-        ((filtered_darts[index].y + filtered_darts[index].height)+ (circle_rect[i].y + circle_rect[i].height ))/2));
+        Point((filtered_darts[index].x+circle_rect[c_i].x)/2,(filtered_darts[index].y+circle_rect[c_i].y)/2),
+        Point(((filtered_darts[index].x + filtered_darts[index].width)+ (circle_rect[c_i].x + circle_rect[c_i].width ))/2,
+        ((filtered_darts[index].y + filtered_darts[index].height)+ (circle_rect[c_i].y + circle_rect[c_i].height ))/2));
 			}
 			final_rect.push_back(correct);
 			printf("pushing correct\n");
