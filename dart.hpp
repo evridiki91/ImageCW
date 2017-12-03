@@ -14,9 +14,11 @@ all the r's are summed up in each dimension to reduce the 3d accumulator
 to 2d
 ***********************************************************************/
 
-void hough_circle(Mat thr, Mat dir, int minr, int maxr, vector<Vec3f> potentialCircles){
-  printf("inside hough\n");
-
+void hough_circle(Mat thr, Mat dir, int minr, int maxr, vector<Vec3f> &potentialCircles,
+  int no_neighbors, int circleHoughthresh){
+  potentialCircles.clear();
+  printf("Hough Circle ...\n");
+  vector<Vec2f> potentialCircles2d;
   Mat acc2d = Mat::zeros(thr.size[0],thr.size[1],CV_64FC1);
   const int rows=thr.size[0], cols=thr.size[1], radii=maxr-minr;
   int dims[3] = {rows, cols, radii};
@@ -60,12 +62,52 @@ void hough_circle(Mat thr, Mat dir, int minr, int maxr, vector<Vec3f> potentialC
     }
   }
   writeToCSV("hough_circle.csv",acc2d);
-  imwrite("hough_circle_norm.jpg",acc2d);
+
+  int breakLoop = false;
+  for (int y = minr ; y < rows-minr; y++){
+    for (int x = minr ; x < cols-minr; x++){
+      breakLoop = false;
+      int peak = acc2d.at<double>(y,x);
+      if (peak > circleHoughthresh) {
+        for( int m = -no_neighbors; m <= no_neighbors; m++ ){
+          if (breakLoop) break;
+          for( int n = -no_neighbors; n <= no_neighbors; n++ ){
+            int nei_x = n + x ;
+            int nei_y = m + y;
+            if ((m == 0 && n == 0) || nei_x < 0 || nei_x >= cols || nei_y < 0 || nei_y >= rows)
+              continue;
+            else{
+              //not local maxima check
+              if (acc2d.at<double>(nei_y,nei_x) > peak){
+                breakLoop = true;
+                break;
+              }
+            }
+          }
+        }
+        if (breakLoop) continue;
+        else potentialCircles2d.push_back(Vec2f(y,x));
+      }
+    }
+  }
   double max,min;
   minMaxLoc(acc2d, &min,&max);
   convert(acc2d,acc2d,min,max);
-  imwrite("hough_circle.jpg",acc2d);
+  int maxr_value, maxr_index;
 
+  for (int i = 0; i < potentialCircles2d.size(); i++){
+    maxr_value = -1;
+    maxr_index = -1;
+    for (int r = 0; r < radii; r++){
+      double acc3d_value = acc3d.at<double>(potentialCircles2d[i][0], potentialCircles2d[i][1],r);
+      if ( acc3d_value > maxr_value ){
+        maxr_value = acc3d_value;
+        maxr_index = r+minr;
+      }
+    }
+    potentialCircles.push_back(Vec3f(potentialCircles2d[i][1],potentialCircles2d[i][0],maxr_index));
+  }
+  printf("Hough circle found %d potential maxima\n",potentialCircles2d.size());
 
 }
 
@@ -77,7 +119,6 @@ dir.
 ***********************************************************************/
 
 void gradient_direction(Mat &dx,Mat &dy, Mat &dir){
-  printf("Directioning\n" );
   for (int y = 0; y < dx.size[0]; y++){
     for (int x = 0; x < dx.size[1]; x++){
       double pointx = dx.at<double>(y,x);
@@ -97,7 +138,6 @@ mag.
 ***********************************************************************/
 
 void gradient_magnitude(Mat &dx,Mat &dy, Mat &mag){
-  printf("Magnituding\n" );
   Mat mag_non_normalised = Mat::zeros(dx.rows,dx.cols,CV_64FC1);
   for (int y = 0; y < dx.size[0]; y++){
     for (int x = 0; x < dx.size[1]; x++){
@@ -111,9 +151,9 @@ void gradient_magnitude(Mat &dx,Mat &dy, Mat &mag){
   printf("Finished Magnituding\n" );
 }
 
-void hough_line(Mat &thr, Mat &dir, vector<Point2f> &potentialLines){
+void hough_line(Mat &thr, Mat &dir, vector<Point2f> &potentialLines, int no_neighbors){
   const int rows=thr.size[0], cols=thr.size[1];
-  printf("inside hough");
+  printf("Hough Line ...\n");
   int diagonal = floor(sqrt(rows*rows + cols*cols));
   int degree_range = 90;
   float resolution = 1;
@@ -137,17 +177,14 @@ void hough_line(Mat &thr, Mat &dir, vector<Point2f> &potentialLines){
       }
     }
   }
-  printf("Finished hough");
-
   double max,min;
   minMaxLoc(acc2d, &min,&max);
   convert(acc2d,acc2d_norm,0,max);
   resize(acc2d_norm,acc2d_display, Size(512, 512)) ;
-  printf("finding local maxima\n");
+
   writeToCSV("acc2d.csv",acc2d);
   writeToCSV("acc2d_norm.csv",acc2d_norm);
   writeToCSV("acc2d_display.csv",acc2d_display);
-
   int breakLoop = false;
 
   for (int r = 0; r < 2*diagonal; r++) {
@@ -165,7 +202,7 @@ void hough_line(Mat &thr, Mat &dir, vector<Point2f> &potentialLines){
             if ((m == 0 && n == 0) || nei_x < 0 || nei_x >= 2*diagonal || nei_y < 0 || nei_y >= degree_range*2/resolution)
               continue;
             else{
-              //not local maxima
+              //local maxima check
               if (acc2d.at<double>(nei_x,nei_y) > peak){
                 breakLoop = true;
                 break;

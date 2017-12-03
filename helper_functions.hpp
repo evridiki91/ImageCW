@@ -6,7 +6,6 @@ Converting a matrix of float/signed/any type other than CV_8U, to CV_8U.
 ***********************************************************************/
 void convert(Mat &src,Mat &dst, float min, float max){
   src.convertTo(dst,CV_8U,255.0/(max-min),-255.0*min/(max-min));
-  printf("Converting done\n");
 }
 
 /***********************************************************************

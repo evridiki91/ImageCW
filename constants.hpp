@@ -37,9 +37,9 @@ thresh = value for tresholding function, anything above this
 float scaleFactorSobel = 1.0;
 float thresh = 55;
 float Houghthresh = 80;
+float circleHoughthresh = 80;
 float cannyThresh = 55;
 float maxValue = 255;
-int no_neighbors = 50;
 String cascade_name = "dartcascade/cascade.xml";
 CascadeClassifier cascade;
 void detectAndDisplay( Mat frame );
