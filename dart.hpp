@@ -62,6 +62,7 @@ void hough_circle(Mat thr, Mat dir, int minr, int maxr, vector<Vec3f> &potential
     }
   }
   writeToCSV("hough_circle.csv",acc2d);
+  imwrite("hough_circle.jpg",acc2d);
 
   int breakLoop = false;
   for (int y = minr ; y < rows-minr; y++){
@@ -77,7 +78,7 @@ void hough_circle(Mat thr, Mat dir, int minr, int maxr, vector<Vec3f> &potential
             if ((m == 0 && n == 0) || nei_x < 0 || nei_x >= cols || nei_y < 0 || nei_y >= rows)
               continue;
             else{
-              //not local maxima check
+
               if (acc2d.at<double>(nei_y,nei_x) > peak){
                 breakLoop = true;
                 break;
@@ -86,7 +87,10 @@ void hough_circle(Mat thr, Mat dir, int minr, int maxr, vector<Vec3f> &potential
           }
         }
         if (breakLoop) continue;
-        else potentialCircles2d.push_back(Vec2f(y,x));
+        else {
+          printf("adding %d %d \n",x,y);
+          potentialCircles2d.push_back(Vec2f(y,x));
+        }
       }
     }
   }
@@ -94,6 +98,7 @@ void hough_circle(Mat thr, Mat dir, int minr, int maxr, vector<Vec3f> &potential
   minMaxLoc(acc2d, &min,&max);
   convert(acc2d,acc2d,min,max);
   int maxr_value, maxr_index;
+  printf("Hough circle found %d potential maxima\n",potentialCircles2d.size());
 
   for (int i = 0; i < potentialCircles2d.size(); i++){
     maxr_value = -1;
@@ -107,8 +112,6 @@ void hough_circle(Mat thr, Mat dir, int minr, int maxr, vector<Vec3f> &potential
     }
     potentialCircles.push_back(Vec3f(potentialCircles2d[i][1],potentialCircles2d[i][0],maxr_index));
   }
-  printf("Hough circle found %d potential maxima\n",potentialCircles2d.size());
-
 }
 
 

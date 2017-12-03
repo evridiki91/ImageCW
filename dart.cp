@@ -95,13 +95,13 @@ void detectAndDisplay( Mat frame )
 
 		 printf("Hough for concentric \n" );
 		 hough_circle( thr(concentric), dir(concentric),concentric_minr,concentric_maxr ,
-		 circles_concentric, concentric.width/6, circleHoughthresh/2  );
+		 circles_concentric, concentric.width/4, circleHoughthresh/2  );
 
 		 printf("Hough for concentric found %d concentric circles\n",circles_concentric.size() );
 		 if (circles_concentric.size() > 0){
 			 for( size_t j = 0; j < circles_concentric.size(); j++ ) {
-		      Point center_conc(cvRound(circles_concentric[i][0]+concentric.x), cvRound(circles_concentric[i][1])+concentric.y);
-		      int radius_conc = cvRound(circles_concentric[i][2] );
+		      Point center_conc(cvRound(circles_concentric[j][0]+concentric.x), cvRound(circles_concentric[j][1])+concentric.y);
+		      int radius_conc = cvRound(circles_concentric[j][2] );
 					printf("drawing circle with x %d y %d r %d\n",center_conc.x,center_conc.y,radius_conc);
 					circle(frame, center_conc, radius_conc, Scalar(255,0,0),2);
 		      if (radius <= 0) {
