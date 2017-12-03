@@ -289,7 +289,7 @@ NOTE: Rect a must be the reference. The overlapping percentage will
 be compared to this.
 ***********************************************************************/
 
-float overlapRectanglePerc(Rect a, Rect b){
+int overlapRectanglePerc(Rect a, Rect b){
 	//finding the intersecting left, top, right, bottom coordinates
 	int left = max(a.x,b.x);
 	int top = max(a.y,b.y);

@@ -165,16 +165,19 @@ void detectAndDisplay( Mat frame )
 		int overlap_array[darts.size()][circle_rect.size()];
 		//arrays to store distance/overlap % between each dart and circle
 		for( size_t i = 0; i < circle_rect.size(); i++ ){
-			Point center_circle(round(circle_rect[i].x+circle_rect[i].width/2),round(circle_rect[i].y+circle_rect[i].height/2));
 			for (size_t j = 0; j < darts.size(); j++){
-				Point center_dart(round(darts[j].x+darts[j].width/2), round(darts[j].y+darts[j].height/2));
-				distance_array[i][j] = round(euclidean(center_dart,center_circle));
-				printf("distance of VJ %d and HT %d is %d\n",j,i, distance_array[i][j] );
+				Point center_circle(cvRound(circles[i][0]),cvRound(circles[i][1]));
+				Point center_dart(cvRound(darts[j].x+darts[j].width/2), cvRound(darts[j].y+darts[j].height/2));
 
-				float overlap_perc;
+				distance_array[i][j] = cvRound(euclidean(center_dart,center_circle));
+				int overlap_perc;
 				if (!overlap(darts[j],circle_rect[i])) overlap_perc = 0;
 				else overlap_perc = overlapRectanglePerc(darts[j],circle_rect[i]);
-				overlap_array[i][j] = round(overlap_perc);
+				overlap_array[i][j] = cvRound(overlap_perc);
+				printf("dart x %d y %d ",center_dart.x,center_dart.y);
+				printf("circle x %d y %d ",center_circle.x,center_circle.y);
+
+				printf("distance of VJ %d and HT %d is %d\n",j,i, distance_array[i][j] );
 				printf("overlap of VJ %d and HT %d is %d\n\n",j,i,overlap_array[i][j] );
 			}
 		}
@@ -224,7 +227,7 @@ void detectAndDisplay( Mat frame )
 			final_rect.push_back(correct);
 			printf("pushing correct\n");
 			filtered_darts.clear();
-			area_vector.clear();IN
+			area_vector.clear();
 	 }
 	}
 	// if (final_rect.size() == 0)
