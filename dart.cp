@@ -67,7 +67,7 @@ void detectAndDisplay( Mat frame )
 	printf("Hough line found %d lines\n\n",potentialLines.size());
 
 	// (threshold, direction, min radius, max radius, destination, neighbourhood size, threshold Hough)
-	hough_circle(thr,dir, minr, maxr,circles,thr.size[0]/4,circleHoughthresh );
+	hough_circle(thr,dir, minr, maxr,circles,thr.size[0]/4,circleHoughthresh, 0 );
 
 	printf("Hough circle found %d circles\n\n",circles.size());
 
@@ -107,7 +107,7 @@ void detectAndDisplay( Mat frame )
 		 //call hough transform on portion defined by concentric_square with altered parameters
 		 // to find circles with smaller radii
 		 hough_circle( thr(concentric_square), dir(concentric_square),concentric_minr,concentric_maxr ,
-		 circles_concentric, concentric_square.width/4, circleHoughthresh/2  );
+		 circles_concentric, concentric_square.width/4, circleHoughthresh/2, 1  );
 
 		 printf("Hough for concentric found %d concentric circles\n",circles_concentric.size() );
 		 if (circles_concentric.size() > 0){

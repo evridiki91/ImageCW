@@ -24,7 +24,7 @@ the potentialCircles.
 ***********************************************************************/
 
 void hough_circle(Mat thr, Mat dir, int minr, int maxr, vector<Vec3f> &potentialCircles,
-  int no_neighbors, int circleHoughthresh){
+  int no_neighbors, int circleHoughthresh, int isConcentric){
 
   potentialCircles.clear();
   printf("Hough Circle ...\n");
@@ -74,7 +74,7 @@ void hough_circle(Mat thr, Mat dir, int minr, int maxr, vector<Vec3f> &potential
     }
   }
   writeToCSV("hough_circle.csv",acc2d);
-  imwrite("hough_circle.jpg",acc2d);
+  if (!isConcentric) imwrite("hough_circle.jpg",acc2d);
 
   int breakLoop = false;
 
