@@ -12,12 +12,10 @@ void convert(Mat &src,Mat &dst, float min, float max){
 Calculates the Euclidean distance between two Points
 ***********************************************************************/
 
-#define sind(x) (sin((x) * M_PI /180))
-#define cosd(x) (cos((x) * M_PI /180))
-
 float euclidean(Point a, Point b){
   return sqrt((b.y - a.y)*(b.y - a.y) + (b.x - a.x)*(b.x - a.x));
 }
+
 
 void drawCircles(vector<Vec3f> circles, Mat &frame, int color){
   for( int i = 0; i < circles.size(); i++ )
@@ -31,6 +29,14 @@ void drawCircles(vector<Vec3f> circles, Mat &frame, int color){
      if (color == 2) circle( frame, center, radius, Scalar(255,0,0), 3, 8, 0 );
    }
 }
+
+/***********************************************************************
+Sine and cosine functions for degrees
+***********************************************************************/
+
+#define sind(x) (sin((x) * M_PI /180))
+#define cosd(x) (cos((x) * M_PI /180))
+
 
 /***********************************************************************
 Helper function to check the output of each matrix in order to be sure
@@ -85,6 +91,9 @@ double f1score(double detected, double trueDetected, double correct){
 	return 2*tp/(2*tp+fp+fn);
 }
 
+/***********************************************************************
+Calculates the min index of a vector
+***********************************************************************/
 int minIndex(vector<int> &vec){
   int min = 99999;
   int index = -1;
@@ -97,6 +106,10 @@ int minIndex(vector<int> &vec){
   return index;
 }
 
+/***********************************************************************
+Calculates the log of a matrix and stores it in another matrix
+***********************************************************************/
+
 void log_mat(Mat &src, Mat &dst){
   for (int i = 0; i < src.rows; i++){
     for (int j = 0; j < src.cols; j++){
@@ -105,6 +118,12 @@ void log_mat(Mat &src, Mat &dst){
     }
   }
 }
+
+/***********************************************************************
+Function that returns a Boolean.
+True -  area of the two is within the size constrains
+False - area of the two is NOT within the size constrains 
+***********************************************************************/
 
 int sizeBetween(float perc, Rect a, Rect b){
   if (a.area() <= perc* b.area() || b.area() <= perc* a.area()) return true;

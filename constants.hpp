@@ -32,14 +32,15 @@ Rect box[] = {Rect(456,28,128,150)}; //dart 0
 
 /***********************************************************************
 thresh = value for tresholding function, anything above this
-  will become 255, else it will become 0
+          will become maxValue, else it will become 0
+Houghthresh, CircleHoughthresh = threshold for hough transform (lines and circles)
+
 ***********************************************************************/
 float scaleFactorSobel = 1.0;
 float thresh = 55;
+float maxValue = 255;
 float Houghthresh = 80;
 float circleHoughthresh = 80;
-float cannyThresh = 55;
-float maxValue = 255;
 String cascade_name = "dartcascade/cascade.xml";
 CascadeClassifier cascade;
 void detectAndDisplay( Mat frame );
