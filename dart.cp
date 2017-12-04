@@ -111,7 +111,7 @@ void detectAndDisplay( Mat frame )
 		 imwrite("thr_inters_lines.jpg",thr_inters_lines);
 		 //performing Hough transform for lines
 		 // (threshold, destination, neighbourhood size, threshold for Hough)
-		 hough_line(thr_inters_lines, potentialIntersectionLines,concentric_square.width/8,frame.size[0]/10);
+		 hough_line(thr_inters_lines, potentialIntersectionLines,circleHoughthresh,frame.size[0]/10);
 		//drawing detected lines
 		printf("Found %d lines inside concentric \n",potentialIntersectionLines.size());
 
@@ -194,7 +194,7 @@ void detectAndDisplay( Mat frame )
 	//if no VJ darts or circles were detected then return empty
   if ((darts.size() == 0) && (circles.size() == 0)) {
 
-		hough_line(thr, potentialIntersectionLines,Houghthresh/0.7,maxr);
+		hough_line(thr, potentialIntersectionLines,Houghthresh,maxr);
 	 //drawing detected lines
 	 printf("Found %d lines \n",potentialIntersectionLines.size());
 
@@ -220,7 +220,7 @@ void detectAndDisplay( Mat frame )
 
 	 for (int x0 = 0; x0 < thr.size[1]; x0++){
 		 for (int y0 = 0; y0 < thr.size[0]; y0++){
-			 if (intersection_accumulator.at<float>(x0,y0)>=6) {
+			 if (intersection_accumulator.at<float>(x0,y0)>=8) {
 				 Rect correct = Rect(Point(x0-minr,y0-minr),Point(x0+minr,y0+minr));
 						 final_rect.push_back(correct);
 				}
@@ -270,7 +270,7 @@ void detectAndDisplay( Mat frame )
 			for (int d_i = 0; d_i < darts.size(); d_i++){
 
 				//&& sizeBetween(2.5,darts[j],circle_rect[i])
-				if (concentric_bool[c_i] && intersection_bool[c_i] ){
+				if (concentric_bool[c_i] || intersection_bool[c_i] ){
 					if (distance_array[d_i][c_i] < 40 && overlap_array[d_i][c_i] > 0){
 						printf("\ngood dart and concentric circle found\n");
 						printf("distance of VJ %d and HT %d is %d\n",d_i,c_i, distance_array[d_i][c_i] );
