@@ -29,7 +29,6 @@ void detectAndDisplay( Mat frame )
 	//normalising gradients from 0 to 255 (1020 = sobel limit)
 	convert(gradx,gradx_norm, -1020, 1020);
 	convert(grady,grady_norm, -1020, 1020);
-
   imwrite("gradx.jpg",gradx_norm);
   imwrite("grady.jpg",grady_norm);
 
@@ -46,7 +45,7 @@ void detectAndDisplay( Mat frame )
 
   //calculating the gradient direction
   gradient_direction(gradx,grady,dir);
-	//normalising the direction
+	//normalising the direction for visualisation
 	convert(dir,dir_norm,-CV_PI, CV_PI);
 	imwrite("dir.jpg",dir_norm);
   writeToCSV("dir.csv",dir);
@@ -59,21 +58,16 @@ void detectAndDisplay( Mat frame )
   // int minr = 15;  //good for coin images
 
   vector<Vec3f> circles,circles_concentric;
-	vector<Point2f> potentialLines;
-	//performing Hough transform for lines
-	// (threshold, destination, neighbourhood size, threshold for Hough)
-	hough_line(thr, potentialLines,thr.size[0]/8,Houghthresh);
+	vector<Point2f> potentialLines, potentialIntersectionLines;
 
-	printf("Hough line found %d lines\n\n",potentialLines.size());
-
+	//Performing HT for circles
 	// (threshold, direction, min radius, max radius, destination, neighbourhood size, threshold Hough)
 	hough_circle(thr,dir, minr, maxr,circles,thr.size[0]/4,circleHoughthresh, 0 );
 
 	printf("Hough circle found %d circles\n\n",circles.size());
-
-	//stores if the circle has a concentric circle inside
+	//stores if the circle has a concentric circle/lines intersecting
 	int concentric_bool[circles.size()];
-
+	int intersection_bool[circles.size()];
 	//stores circles as rectangles for fair comparison
   std::vector<Rect> circle_rect;
   //Diagonals for creating rectangles
@@ -81,7 +75,9 @@ void detectAndDisplay( Mat frame )
 	//rectangle for the square inside circle
 	Rect concentric_square;
 
+
   for( size_t i = 0; i < circles.size(); i++ ){
+		intersection_bool[i] = 0;
   	// creating rectangles to represent the circles found and push them into vector
      Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
      int radius = cvRound(circles[i][2]);
@@ -107,10 +103,63 @@ void detectAndDisplay( Mat frame )
 		 //call hough transform on portion defined by concentric_square with altered parameters
 		 // to find circles with smaller radii
 		 hough_circle( thr(concentric_square), dir(concentric_square),concentric_minr,concentric_maxr ,
-		 circles_concentric, concentric_square.width/4, circleHoughthresh/2, 1  );
+		 circles_concentric, concentric_square.width/4, circleHoughthresh/2, 1 );
 
-		 printf("Hough for concentric found %d concentric circles\n",circles_concentric.size() );
-		 if (circles_concentric.size() > 0){
+
+		 Mat thr_inters_lines;
+		 threshold(mag,thr_inters_lines, thresh/1.25, maxValue, THRESH_BINARY);
+		 imwrite("thr_inters_lines.jpg",thr_inters_lines);
+		 //performing Hough transform for lines
+		 // (threshold, destination, neighbourhood size, threshold for Hough)
+		 hough_line(thr_inters_lines, potentialIntersectionLines,concentric_square.width/8,frame.size[0]/10);
+		//drawing detected lines
+		printf("Found %d lines inside concentric \n",potentialIntersectionLines.size());
+
+		// for( size_t p = 0; p < potentialIntersectionLines.size(); p++ ){
+		// 	 float rho = potentialIntersectionLines[p].x, theta = potentialIntersectionLines[p].y;
+		// 	 Point pt1, pt2;
+		// 	 double a = cosd(theta), b = sind(theta);
+		// 	 pt1.x = 0;
+		// 	 pt1.y = (rho - (pt1.x)*cosd(theta))/sind(theta);
+		// 	 pt2.x = frame.size[1]; /*concentric_square.x + concentric_square.width;*/
+		// 	 pt2.y = (rho - (pt2.x)*cosd(theta))/sind(theta);
+		// 	 line( frame, pt1, pt2, Scalar(0,0,255), 1, CV_AA);
+		// }
+
+		Mat intersection_accumulator = Mat::zeros(thr.size[0],thr.size[1],CV_32FC1);
+		for (int x0 = concentric_square.x; x0 < concentric_square.x+concentric_square.width; x0++){
+		 for( size_t p = 0; p < potentialIntersectionLines.size(); p++ ){
+			 float rho = potentialIntersectionLines[p].x, theta = potentialIntersectionLines[p].y;
+			 float m = - (cosd(theta)/sind(theta));
+			 float c = rho*(1/sind(theta));
+			 int y0 =cvRound(c + m * x0);
+			 for (int k = -1; k < 1; k++){
+				 for (int l = -1; l < 1; l++){
+						if (y0+l >= concentric_square.y  &&
+								y0+l < concentric_square.y+concentric_square.height && x0+k >= concentric_square.x
+								&& x0+k < concentric_square.x + concentric_square.width){
+					 		intersection_accumulator.at<float>(x0+k,y0+l) += 1;
+					}
+				 	}
+				}
+		 	}
+		}
+		writeToCSV("intersection_accumulator.csv",intersection_accumulator);
+		for (int x0 = concentric_square.x; x0 < concentric_square.x+concentric_square.width; x0++){
+			for (int y0 = concentric_square.y; y0 < concentric_square.y+concentric_square.height; y0++){
+				if (intersection_accumulator.at<float>(x0,y0)>=6) {
+					int distance = cvRound(euclidean(Point(x0,y0),Point(center.x,center.y)) );
+					printf("distance %d\n",distance);
+					if (distance <= 15){
+						intersection_bool[i] = 1;
+					}
+				}
+			}
+		}
+
+		printf("Hough for concentric found %d concentric circles\n",circles_concentric.size() );
+		if (circles_concentric.size() > 0){
+
 			 //marking whether a circle has a concentric circle inside
 			 for( size_t j = 0; j < circles_concentric.size(); j++ ) {
 		      Point center_conc(cvRound(circles_concentric[j][0]+concentric_square.x), cvRound(circles_concentric[j][1])+concentric_square.y);
@@ -144,7 +193,39 @@ void detectAndDisplay( Mat frame )
 
 	//if no VJ darts or circles were detected then return empty
   if ((darts.size() == 0) && (circles.size() == 0)) {
-    final_rect.clear();
+
+		hough_line(thr, potentialIntersectionLines,Houghthresh/0.7,maxr);
+	 //drawing detected lines
+	 printf("Found %d lines \n",potentialIntersectionLines.size());
+
+	 Mat intersection_accumulator = Mat::zeros(thr.size[0],thr.size[1],CV_32FC1);
+	 for (int x0 = 0; x0 < thr.size[1]; x0++){
+		for( size_t p = 0; p < potentialIntersectionLines.size(); p++ ){
+			float rho = potentialIntersectionLines[p].x, theta = potentialIntersectionLines[p].y;
+			float m = - (cosd(theta)/sind(theta));
+			float c = rho*(1/sind(theta));
+			int y0 =cvRound(c + m * x0);
+			for (int k = -1; k < 1; k++){
+				for (int l = -1; l < 1; l++){
+					 if (y0+l >= 0  &&
+							 y0+l < thr.size[0] &&
+							 x0+k >= 0&&
+							 x0+k < thr.size[1]){
+						 intersection_accumulator.at<float>(x0+k,y0+l) += 1;
+					}
+				 }
+			 }
+		 }
+	 }
+
+	 for (int x0 = 0; x0 < thr.size[1]; x0++){
+		 for (int y0 = 0; y0 < thr.size[0]; y0++){
+			 if (intersection_accumulator.at<float>(x0,y0)>=6) {
+				 Rect correct = Rect(Point(x0-minr,y0-minr),Point(x0+minr,y0+minr));
+						 final_rect.push_back(correct);
+				}
+			}
+		}
   }
 
 	//if no circles were detected return VJ darts
@@ -154,7 +235,11 @@ void detectAndDisplay( Mat frame )
 
 	//if no VJ darts were detected return circles
   else if (darts.size() == 0) {
-    final_rect = circle_rect;
+		 for (int num = 0; num < circles.size(); num++){
+			 if (concentric_bool[num] || intersection_bool[num]){
+				 final_rect.push_back(circle_rect[num]);
+			 }
+		 }
   }
 
   else{
@@ -185,7 +270,7 @@ void detectAndDisplay( Mat frame )
 			for (int d_i = 0; d_i < darts.size(); d_i++){
 
 				//&& sizeBetween(2.5,darts[j],circle_rect[i])
-				if (concentric_bool[c_i]){
+				if (concentric_bool[c_i] && intersection_bool[c_i] ){
 					if (distance_array[d_i][c_i] < 40 && overlap_array[d_i][c_i] > 0){
 						printf("\ngood dart and concentric circle found\n");
 						printf("distance of VJ %d and HT %d is %d\n",d_i,c_i, distance_array[d_i][c_i] );
@@ -194,7 +279,7 @@ void detectAndDisplay( Mat frame )
 					}
 				}
 				else{
-        if ((overlap_array[d_i][c_i] > 50 || (distance_array[d_i][c_i] < 40))  ){
+        if ((overlap_array[d_i][c_i] > 50 || (distance_array[d_i][c_i] < 40)) && intersection_bool[c_i]  ){
 					//its a good circle and a good dart
 					printf("\ngood dart and circle found\n");
 					printf("distance of VJ %d and HT %d is %d\n",d_i,c_i, distance_array[d_i][c_i] );
@@ -227,8 +312,21 @@ void detectAndDisplay( Mat frame )
 			area_vector.clear();
 	 }
 	}
-	// if (final_rect.size() == 0)
-}
+
+	if (final_rect.size() == 0){
+		if (darts.size() == 0){
+			for (int i = 0; i < circles.size(); i++){
+				if (intersection_bool[i] || concentric_bool[i]){
+						final_rect.push_back(circle_rect[i]);
+				}
+			}
+		}
+	}
+	if (final_rect.size() == 0){
+
+	}
+
+	}
   printf("final rect size  %d\n",final_rect.size() );
   printf("circle rect size  %d\n",circle_rect.size() );
   printf("VJ rect size  %d\n",darts.size() );
@@ -249,18 +347,18 @@ void detectAndDisplay( Mat frame )
 
 	//variable for storing the true face coordinates
 	vector<Rect> truedarts(box, box + sizeof(box)/sizeof(box[0]));
-	for (size_t j = 0; j<truedarts.size(); j++ ){
-		rectangle(frame, Point(truedarts[j].x, truedarts[j].y), Point(truedarts[j].x + truedarts[j].width, truedarts[j].y + truedarts[j].height), Scalar( 255, 0, 0 ), 2);
-		for( size_t i = 0; i < final_rect.size(); i++ ){
+	for (size_t td = 0; td<truedarts.size(); td++ ){
+		rectangle(frame, Point(truedarts[td].x, truedarts[td].y), Point(truedarts[td].x + truedarts[td].width, truedarts[td].y + truedarts[td].height), Scalar( 255, 0, 0 ), 2);
+		for( size_t fr = 0; fr < final_rect.size(); fr++ ){
 			//if they do not overlap then go to next iteration
-			if (!overlap(truedarts[j],final_rect[i])){
+			if (!overlap(truedarts[td],final_rect[fr])){
 				continue; }
 			else {
 				//getting the % of overlap
-				float percentage = overlapRectanglePerc(truedarts[j],final_rect[i]);
+				float percentage = overlapRectanglePerc(truedarts[td],final_rect[fr]);
 				printf("percentage of overlap  %f%%\n",percentage );
-				if (percentage > 65){
-          if (final_rect[i].area() <= 1.5*truedarts[j].area() ){
+				if (percentage >= 60){
+          if (final_rect[fr].area() <= 2*truedarts[td].area() ){
     				//increment the counter for correctly recognised darts and go to next face
     				counter++;
     				break; }

@@ -76,12 +76,21 @@ double overlapRectanglePerc(Rect a, Rect b){
 // trueDetected = number of elements that should have been detected
 // correct = number of elemnts correctly trueDetected
 double f1score(double detected, double trueDetected, double correct){
-	double precision = correct/detected;
-	printf("precision %f\n",precision);
-	double recall = correct / trueDetected;
-	printf("recall %f\n",recall);
-	return 2*(precision*recall)/(precision + recall);
+  double tp = correct;
+  double fp = detected - tp;
+  double fn = trueDetected - tp;
+  double precision = tp/(tp + fp);
+  double recall = tp/(tp + fn);
+
+	printf("true positives %f\n",tp);
+  printf("false positives %f\n",fp);
+  printf("false negatives %f\n",fn);
+  printf("Precision:  %f\n",precision);
+  printf("Recall %f\n",recall);
+	return 2*tp/(2*tp+fp+fn);
 }
+
+
 
 /** @function main */
 int main( int argc, const char** argv )
@@ -132,10 +141,13 @@ void detectAndDisplay( Mat frame )
 				//getting the % of overlap
 				double percentage = overlapRectanglePerc(truefaces[j],faces[i]);
 				printf("percentage of overlap  %f%%\n",percentage );
-				if (percentage > 65){
+				if (percentage >= 60){
+          	if (faces[i].area() <= 2*truefaces[j].area() ){
 					//increment the counter for correctly recognised faces and go to next face
 					counter++;
-					break; }
+					break;
+					}
+				}
 			}
 		}
 	}

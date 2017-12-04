@@ -188,7 +188,7 @@ accumulator Acc[r,t]. The image is resized 512x512. Finds local maxima by
 comparing points with neighbors. Stores this local maxima in potentialLines.
 ***********************************************************************/
 
-void hough_line(Mat &thr, vector<Point2f> &potentialLines, int no_neighbors,
+void hough_line(Mat thr, vector<Point2f> &potentialLines, int no_neighbors,
  int Houghthresh){
 
   printf("Hough Line ...\n");
